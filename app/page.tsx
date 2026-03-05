@@ -31,18 +31,20 @@ export default function Home() {
 
         {/* H1 */}
         <h1
-          className="mt-10 max-w-3xl text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] fade-up"
+          className="mt-10 max-w-4xl text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] fade-up"
           style={{ animationDelay: '180ms' }}
         >
-          Discover if you have leading AI Sales Systems
+          Do you have leading AI Sales Systems?
         </h1>
 
         {/* Subline */}
         <p
-          className="mt-6 max-w-xl text-base md:text-lg leading-relaxed text-secondary-foreground fade-up"
+          className="mt-6 max-w-xl text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
           style={{ animationDelay: '280ms' }}
         >
-          89% of enterprises are actively investing in AI, but 53% of sales professionals admit they don&apos;t get much value out of AI tools. Will AI be your competitive advantage, or will you fall behind your competitors?
+          89% of enterprises are actively investing in AI, but 53% of sales professionals admit they don&apos;t get much value out of AI tools.
+          <br /><br />
+          Will AI be your competitive advantage, or will you fall behind your competitors?
         </p>
 
         {/* CTA */}
