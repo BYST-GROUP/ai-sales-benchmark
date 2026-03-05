@@ -8,7 +8,7 @@ import type { CompanyProfile } from '@/types'
 export type { CompanyProfile }
 
 const ACV_BENCHMARKS: Record<string, number> = {
-  SMB: 10000,
+  SMB: 9000,
   'Mid-Market': 30000,
   Enterprise: 100000,
 }
@@ -152,7 +152,8 @@ Rules:
 - customer_segment is either SMB, Mid-Market, or Enterprise — never "mixed"
 - If the company serves multiple segments, pick the most dominant one
 - If the GTM motion is hybrid, default to whichever motion is most dominant — sales-led or product-led
-- End with a short, natural conversational question that invites correction
+- End with a short, natural conversational question.
+- Use new lines to make the message more readable.
 - Return only the message text, no JSON, no markdown`,
     messages: [
       {
