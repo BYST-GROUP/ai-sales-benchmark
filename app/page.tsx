@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { formatEnrichmentMessage } from '@/lib/data-enrichment-logic'
-import type { EnrichmentProfile } from '@/app/api/enrich/route'
 
 type Phase = 'hero' | 'chat'
 
@@ -69,8 +67,8 @@ export default function Home() {
         resolvedMessage.current =
           body?.error ?? "I couldn't find data for this domain. Can you tell me a bit about your company?"
       } else {
-        const profile: EnrichmentProfile = await res.json()
-        resolvedMessage.current = formatEnrichmentMessage(profile)
+        const data = await res.json()
+        resolvedMessage.current = data.enrichment_message ?? "I couldn't find data for this domain. Can you tell me a bit about your company?"
       }
     } catch {
       resolvedMessage.current =
