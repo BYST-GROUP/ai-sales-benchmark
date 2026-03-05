@@ -208,23 +208,29 @@ export default function Home() {
 
         {/* Fixed input bar */}
         <div className="flex-shrink-0 border-t border-border bg-background px-4 py-4">
-          <form
-            onSubmit={handleCorrection}
-            className="mx-auto max-w-2xl flex items-center gap-3"
-          >
+          <div className="mx-auto max-w-2xl">
+
+            {/* Suggestion chips */}
             {showOptions && !showFinalTyping && (
-              <button
-                type="button"
-                onClick={handleLooksGood}
-                className="flex-shrink-0 rounded-full text-sm font-medium px-5 py-2.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors whitespace-nowrap"
-              >
-                Looks good
-              </button>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={handleLooksGood}
+                  className="border border-border rounded-full px-4 py-2 text-sm text-white bg-transparent hover:bg-card transition-colors cursor-pointer"
+                >
+                  Looks good
+                </button>
+              </div>
             )}
-            <div className="flex flex-1 items-center rounded-full bg-[#1a1a1a] border border-white/10 px-4 py-2.5">
+
+            {/* Input bar */}
+            <form
+              onSubmit={handleCorrection}
+              className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3"
+            >
               <input
                 type="text"
-                placeholder={showOptions && !showFinalTyping ? 'Correct something...' : 'Waiting for analysis...'}
+                placeholder="Message..."
                 value={correction}
                 onChange={e => setCorrection(e.target.value)}
                 disabled={!showOptions || showFinalTyping}
@@ -232,16 +238,17 @@ export default function Home() {
               />
               <button
                 type="submit"
-                disabled={!showOptions || showFinalTyping}
-                className="ml-2 flex-shrink-0 w-7 h-7 rounded-full border border-[#009e8f] flex items-center justify-center hover:bg-[#222] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={!correction.trim() || !showOptions || showFinalTyping}
                 aria-label="Send correction"
+                className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-white">
                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                 </svg>
               </button>
-            </div>
-          </form>
+            </form>
+
+          </div>
         </div>
       </div>
 
