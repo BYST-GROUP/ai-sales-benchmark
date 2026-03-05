@@ -162,5 +162,7 @@ Rules:
     ],
   })
 
-  return message.content[0].type === 'text' ? message.content[0].text : fallbackMessage(profile)
+  return message.content[0].type === 'text'
+    ? message.content[0].text
+    : `From what I can see, you're running a ${profile.product_type} business targeting ${profile.customer_segment} buyers with a ${profile.gtm_motion === 'SLG' ? 'sales-led' : 'product-led'} motion. What would you correct?`
 }
