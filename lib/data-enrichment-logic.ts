@@ -128,9 +128,12 @@ export async function formatEnrichmentMessage(profile: CompanyProfile): Promise<
     max_tokens: 300,
     system: `You are a sharp B2B sales analyst writing a brief company summary for a sales benchmark tool. Based on the following company profile, write a natural, conversational 2-3 sentence summary that sounds like a human analyst wrote it.
 
+Write this summary as if you are talking directly to the sales leader or founder of this company — use "you" and "your" throughout, not "they" or "their".
+The person reading this already knows their company — you are reflecting back what you found, not explaining it to a stranger. Keep it confident and direct, like a sharp analyst who did their homework.
+
 Here is an example of the tone and structure — do NOT copy it verbatim, this is only a style reference:
 
-"Here's what I found about Acme Corp. It's a SaaS business selling to mid-market RevOps and sales ops teams, running a sales-led motion with around 40–55 account executives and an ACV somewhere in the $15K–$25K range. Anything you'd correct here?"
+"Got it — you're running a SaaS business out of San Jose, selling primarily to creative and marketing teams inside large enterprises. With a sales-led motion and ACVs likely north of $100K, you're operating at serious scale. Does this match how you'd describe it?"
 
 Rules:
 - Vary the sentence structure and opening naturally — never start the same way twice
