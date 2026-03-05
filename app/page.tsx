@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { formatEnrichmentMessage } from '@/lib/data-enrichment-logic'
+import type { EnrichmentProfile } from '@/app/api/enrich/route'
 
 type Phase = 'hero' | 'chat'
 
@@ -12,11 +14,9 @@ interface Message {
 const STATUSES = [
   (d: string) => `Analysing ${d}...`,
   () => 'Fetching company data...',
+  () => 'Researching website...',
   () => 'Almost there...',
 ]
-
-const MOCK_AI_MESSAGE =
-  `Here's what I found about your company:\n\n🏢 Company: Acme Corp\n🌍 Location: Amsterdam, Netherlands\n👥 Size: 50–200 employees\n🏷️ Industry: B2B SaaS\n\nDoes this look right? Feel free to correct anything before we start the benchmark.`
 
 export default function Home() {
   const [phase, setPhase] = useState<Phase>('hero')
@@ -30,33 +30,86 @@ export default function Home() {
 
   const submittedDomain = useRef('')
   const chatBottomRef = useRef<HTMLDivElement>(null)
+  // Refs to control the status cycling and API resolution
+  const statusTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const resolvedMessage = useRef<string | null>(null)
+  const apiDone = useRef(false)
+
+  function clearStatusTimers() {
+    statusTimers.current.forEach(clearTimeout)
+    statusTimers.current = []
+  }
 
   function handleSubmit() {
     const trimmed = domain.trim()
     if (!trimmed) return
     submittedDomain.current = trimmed
+    resolvedMessage.current = null
+    apiDone.current = false
     setPhase('chat')
     setIsTyping(true)
     setStatusIndex(0)
     window.history.pushState({}, '', '/benchmark')
+    runEnrichment(trimmed)
   }
 
   function handleHeroKey(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') handleSubmit()
   }
 
-  // Status cycling + resolve to AI message
+  async function runEnrichment(d: string) {
+    try {
+      const res = await fetch('/api/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: d }),
+      })
+      if (!res.ok) throw new Error('API error')
+      const profile: EnrichmentProfile = await res.json()
+      resolvedMessage.current = formatEnrichmentMessage(profile)
+    } catch {
+      resolvedMessage.current =
+        "I couldn't find data for this domain. Can you tell me a bit about your company?"
+    }
+    apiDone.current = true
+  }
+
+  // Status cycling — advances every 1.5s, waits for API before resolving
   useEffect(() => {
     if (!isTyping || showFinalTyping) return
-    const t1 = setTimeout(() => setStatusIndex(1), 1500)
-    const t2 = setTimeout(() => setStatusIndex(2), 3000)
-    const t3 = setTimeout(() => {
-      setIsTyping(false)
-      setMessages([{ role: 'ai', content: MOCK_AI_MESSAGE }])
-      setShowOptions(true)
-    }, 4500)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [isTyping, showFinalTyping])
+
+    clearStatusTimers()
+
+    const advance = (idx: number, delay: number) => {
+      const t = setTimeout(() => {
+        setStatusIndex(idx)
+      }, delay)
+      statusTimers.current.push(t)
+    }
+
+    advance(1, 1500)
+    advance(2, 3000)
+    advance(3, 4500)
+
+    // Poll for API completion from 4.5s onward
+    const poll = setInterval(() => {
+      if (apiDone.current && resolvedMessage.current !== null) {
+        clearInterval(poll)
+        clearStatusTimers()
+        setIsTyping(false)
+        const msg = resolvedMessage.current
+        const isFallback = msg.startsWith("I couldn't find")
+        setMessages([{ role: 'ai', content: msg }])
+        setShowOptions(!isFallback)
+      }
+    }, 300)
+
+    return () => {
+      clearStatusTimers()
+      clearInterval(poll)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTyping])
 
   // Scroll to bottom whenever chat updates
   useEffect(() => {
@@ -64,7 +117,7 @@ export default function Home() {
   }, [messages, isTyping, showOptions, showFinalTyping])
 
   function handleLooksGood() {
-    setMessages(prev => [...prev, { role: 'user', content: 'Looks good' }])
+    setMessages(prev => [...prev, { role: 'user', content: 'Looks good ✓' }])
     setShowOptions(false)
     setShowFinalTyping(true)
   }
@@ -230,7 +283,7 @@ export default function Home() {
                   <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center text-xs font-medium text-muted-foreground">
                     1
                   </span>
-                  <span className="text-sm text-white">Looks good</span>
+                  <span className="text-sm text-white">Looks good ✓</span>
                 </button>
 
                 {/* Row 2 — Something else (inline input) */}
@@ -262,6 +315,28 @@ export default function Home() {
                 </form>
 
               </div>
+            ) : !showOptions && !isTyping && messages.length > 0 && messages[messages.length - 1].role === 'ai' && messages[messages.length - 1].content.startsWith("I couldn't find") ? (
+              /* Fallback free-text input */
+              <form onSubmit={handleCorrection} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
+                <input
+                  type="text"
+                  placeholder="Tell us about your company..."
+                  value={correction}
+                  onChange={e => setCorrection(e.target.value)}
+                  className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={!correction.trim()}
+                  aria-label="Send"
+                  className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
+                </button>
+              </form>
             ) : (
               /* Default input bar (inactive) */
               <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3 opacity-40">
