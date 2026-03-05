@@ -45,28 +45,42 @@ export default function Home() {
           89% of enterprises are actively investing in AI, but 53% of sales professionals admit they don&apos;t get much value out of AI tools.
         </p>
 
-        {/* CTA */}
-        <Link
-          href="/benchmark"
-          className="mt-10 rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors fade-up"
-          style={{ animationDelay: '380ms' }}
-        >
-          Benchmark Your AI Sales Systems
-        </Link>
-
         {/* Domain input */}
         <div
-          className="mt-8 w-full max-w-xl fade-up"
-          style={{ animationDelay: '420ms' }}
+          className="mt-10 w-full max-w-xl fade-up"
+          style={{ animationDelay: '380ms' }}
         >
-          <div className="flex items-center rounded-full bg-[#1a1a1a] border border-white/10 px-5 py-3.5">
+          <div className="flex items-center rounded-full bg-[#1a1a1a] border border-white/10 px-5 py-3">
             <input
               type="text"
               placeholder="yourdomain.com"
-              className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+              className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none py-1.5"
             />
+            <button
+              className="ml-3 flex-shrink-0 w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-white/90 transition-colors"
+              aria-label="Start benchmark"
+            >
+              {/* Play icon */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="black"
+                className="w-3.5 h-3.5 translate-x-[1px]"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </button>
           </div>
         </div>
+
+        {/* CTA */}
+        <Link
+          href="/benchmark"
+          className="mt-4 rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors fade-up"
+          style={{ animationDelay: '420ms' }}
+        >
+          Benchmark Your AI Sales Systems
+        </Link>
 
         {/* Below-CTA line */}
         <p
