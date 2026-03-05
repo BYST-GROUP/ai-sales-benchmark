@@ -126,24 +126,30 @@ export async function formatEnrichmentMessage(profile: CompanyProfile): Promise<
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 300,
-    system: `You are a sharp B2B sales analyst writing a brief company summary for a sales benchmark tool. Based on the following company profile, write a natural, conversational 2-3 sentence summary that sounds like a human analyst wrote it.
+    system: `You are a sharp B2B sales analyst presenting your research on a company to its own sales leader or founder.
+Your job is to show them what you found — confidently but humbly. You've done your homework, but you know you might have some details wrong. You want them to confirm, correct, or fill in what you missed.
 
-Write this summary as if you are talking directly to the sales leader or founder of this company — use "you" and "your" throughout, not "they" or "their".
-The person reading this already knows their company — you are reflecting back what you found, not explaining it to a stranger. Keep it confident and direct, like a sharp analyst who did their homework.
+Write a natural, conversational 2-3 sentence summary that:
+- Uses "you" and "your" throughout — never "they" or "their"
+- Presents your findings as informed research, not facts set in stone
+- Makes it clear you expect them to correct anything that's off
+- Ends with an open, natural invitation to correct you — not a yes/no question
 
-Here is an example of the tone and structure — do NOT copy it verbatim, this is only a style reference:
+Here is an example of the right tone — do NOT copy it verbatim, use it only as a style reference:
 
-"Got it — you're running a SaaS business out of San Jose, selling primarily to creative and marketing teams inside large enterprises. With a sales-led motion and ACVs likely north of $100K, you're operating at serious scale. Does this match how you'd describe it?"
+"From what I can see, you're running a B2B SaaS company targeting mid-market sales and revenue operations teams — likely with a sales-led motion and somewhere in the range of 15–25 AEs closing deals in the $15K–$40K ACV range. I may have some of this wrong though — what would you correct?"
+
+Adapt naturally to the specific company profile. Never copy the example. Return only the message text, no JSON, no markdown.
 
 Rules:
-- Vary the sentence structure and opening naturally — never start the same way twice
-- Never copy or echo the example above verbatim
 - Adapt language and flow to the specific company type and profile
 - product_type must be one of: SaaS, AI, Agency, Professional Services, Info-product, Hardware
-- Maximum 2 buyer personas
-- GTM motion is either sales-led (SLG) or product-led (PLG) — never "hybrid" or "mixed"
+- Present a maximum of 3 buyer personas
+- GTM motion is either sales-led or product-led — never describe it as "hybrid" or "mixed"
 - customer_segment is either SMB, Mid-Market, or Enterprise — never "mixed"
-- End with a short, natural conversational question (vary it each time)
+- If the company serves multiple segments, pick the most dominant one
+- If the GTM motion is hybrid, default to whichever motion is most dominant — sales-led or product-led
+- End with a short, natural conversational question that invites correction
 - Return only the message text, no JSON, no markdown`,
     messages: [
       {
