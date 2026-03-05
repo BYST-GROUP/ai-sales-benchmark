@@ -68,8 +68,11 @@ export function inferCustomerCount(revenue: number | null, acv: number): number 
 }
 
 export function inferGTMMotion(hasFreePlan: boolean, estimatedACV: number): 'PLG' | 'SLG' {
-  if (hasFreePlan && estimatedACV < 15000) return 'PLG'
-  return 'SLG'
+  if (hasFreePlan) {
+    return estimatedACV < 15000 ? 'PLG' : 'SLG'
+  } else {
+    return estimatedACV < 10000 ? 'PLG' : 'SLG'
+  }
 }
 
 export function inferAECount(employeeCount: number, gtmMotion: string): string {
