@@ -100,7 +100,7 @@ Website content:
 ${websiteText || 'No website content available.'}`
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 512,
     system: `You are a B2B sales analyst. Based on the company data and website content provided, infer the following and return ONLY a valid JSON object with no preamble or markdown:
 {
