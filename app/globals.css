@@ -53,6 +53,24 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
 }
 
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility fade-up {
+  opacity: 0;
+  animation: fadeUp 0.65s ease forwards;
+}
+
 /* ─── Custom Utilities ──────────────────────────────────────────────────────── */
 
 /* Accent line: 2px × 3rem teal bar used under section headings */
