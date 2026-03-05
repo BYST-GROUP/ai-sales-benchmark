@@ -42,7 +42,7 @@ export default function Home() {
           className="mt-6 max-w-2xl text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
           style={{ animationDelay: '280ms' }}
         >
-          89% of enterprises are actively investing in AI, but 53% of sales professionals admit they don&apos;t get much value out of AI tools.
+          89% of enterprises are investing in AI. Only a fraction have built the systems that actually win deals.<br /><em>Find out where you stand.</em>
         </p>
 
         {/* Domain input */}
