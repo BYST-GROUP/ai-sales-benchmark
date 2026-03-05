@@ -42,7 +42,7 @@ export default function Home() {
           className="mt-6 max-w-6xl text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
           style={{ animationDelay: '280ms' }}
         >
-          89% of enterprises are investing in AI, but only a fraction have built the systems that actually win deals.<br /><em>Find out where you stand.</em>
+          89% of enterprises are investing in AI, but only a fraction have built the systems that actually win deals.<br /><em className="text-primary">Find out where you stand.</em>
         </p>
 
         {/* Domain input */}
