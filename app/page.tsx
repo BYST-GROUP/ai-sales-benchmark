@@ -57,7 +57,7 @@ export default function Home() {
               className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none py-1.5"
             />
             <button
-              className="ml-3 flex-shrink-0 w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center hover:bg-[#222] transition-colors"
+              className="ml-3 flex-shrink-0 w-8 h-8 rounded-full bg-[#1a1a1a] border border-[#009e8f] flex items-center justify-center hover:bg-[#222] transition-colors"
               aria-label="Start benchmark"
             >
               {/* Play icon */}
