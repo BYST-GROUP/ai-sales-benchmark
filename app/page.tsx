@@ -210,43 +210,62 @@ export default function Home() {
         <div className="flex-shrink-0 border-t border-border bg-background px-4 py-4">
           <div className="mx-auto max-w-2xl">
 
-            {/* Suggestion chips */}
-            {showOptions && !showFinalTyping && (
-              <div className="flex flex-wrap gap-2 mb-3">
+            {showOptions && !showFinalTyping ? (
+              /* Options panel */
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+
+                {/* Row 1 — Looks good */}
                 <button
                   type="button"
                   onClick={handleLooksGood}
-                  className="border border-border rounded-full px-4 py-2 text-sm text-white bg-transparent hover:bg-card transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-4 px-4 py-3.5 border-b border-border hover:bg-white/5 transition-colors text-left"
                 >
-                  Looks good
+                  <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center text-xs font-medium text-muted-foreground">
+                    1
+                  </span>
+                  <span className="text-sm text-white">Looks good</span>
                 </button>
+
+                {/* Row 2 — Something else (inline input) */}
+                <form onSubmit={handleCorrection} className="flex items-center gap-4 px-4 py-3.5">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center">
+                    {/* Pencil icon */}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-3 h-3 fill-muted-foreground">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Something else..."
+                    value={correction}
+                    onChange={e => setCorrection(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    disabled={!correction.trim()}
+                    aria-label="Send correction"
+                    className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                  </button>
+                </form>
+
+              </div>
+            ) : (
+              /* Default input bar (inactive) */
+              <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3 opacity-40">
+                <span className="flex-1 text-sm text-muted-foreground">Message...</span>
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center opacity-30">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
+                </div>
               </div>
             )}
-
-            {/* Input bar */}
-            <form
-              onSubmit={handleCorrection}
-              className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3"
-            >
-              <input
-                type="text"
-                placeholder="Message..."
-                value={correction}
-                onChange={e => setCorrection(e.target.value)}
-                disabled={!showOptions || showFinalTyping}
-                className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none disabled:opacity-40"
-              />
-              <button
-                type="submit"
-                disabled={!correction.trim() || !showOptions || showFinalTyping}
-                aria-label="Send correction"
-                className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-white">
-                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                </svg>
-              </button>
-            </form>
 
           </div>
         </div>
