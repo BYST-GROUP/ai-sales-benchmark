@@ -86,7 +86,7 @@ export default function Home() {
           className="mt-6 text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
           style={{ animationDelay: '460ms' }}
         >
-          AI sales systems can become your GTM competitive advantage
+          Your AI sales systems will be your GTM competitive advantage
         </p>
 
       </div>
