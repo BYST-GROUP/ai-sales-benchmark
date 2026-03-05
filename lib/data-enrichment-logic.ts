@@ -8,8 +8,8 @@ import type { CompanyProfile } from '@/types'
 export type { CompanyProfile }
 
 const ACV_BENCHMARKS: Record<string, number> = {
-  SMB: 3000,
-  'Mid-Market': 25000,
+  SMB: 10000,
+  'Mid-Market': 30000,
   Enterprise: 100000,
 }
 
@@ -68,7 +68,7 @@ export function inferCustomerCount(revenue: number | null, acv: number): number 
 }
 
 export function inferGTMMotion(hasFreePlan: boolean, estimatedACV: number): 'PLG' | 'SLG' {
-  if (hasFreePlan && estimatedACV < 50000) return 'PLG'
+  if (hasFreePlan && estimatedACV < 15000) return 'PLG'
   return 'SLG'
 }
 
@@ -133,11 +133,11 @@ Write a natural, conversational 2-3 sentence summary that:
 - Uses "you" and "your" throughout — never "they" or "their"
 - Presents your findings as informed research, not facts set in stone
 - Makes it clear you expect them to correct anything that's off
-- Ends with an open, natural invitation to correct you — not a yes/no question
-
+- Ends with an open, natural question to confirm if your findings are correct.
+- If you have that information share your findings regarding funding stage.
 Here is an example of the right tone — do NOT copy it verbatim, use it only as a style reference:
 
-"From what I can see, you're running a B2B SaaS company targeting mid-market sales and revenue operations teams — likely with a sales-led motion and somewhere in the range of 15–25 AEs closing deals in the $15K–$40K ACV range. I may have some of this wrong though — what would you correct?"
+"From what I can see, Brevo is a B2B SaaS company targeting mid-market sales and revenue operations teams — likely with a sales-led motion and somewhere in the range of 15–25 AEs closing deals in the $15K–$40K ACV range. Am I correct, what would you add?"
 
 Adapt naturally to the specific company profile. Never copy the example. Return only the message text, no JSON, no markdown.
 
@@ -160,13 +160,4 @@ Rules:
   })
 
   return message.content[0].type === 'text' ? message.content[0].text : fallbackMessage(profile)
-}
-
-function fallbackMessage(profile: CompanyProfile): string {
-  return (
-    `Here's what I found about ${profile.display_name}. ` +
-    `They appear to run a ${profile.gtm_motion} motion targeting ${profile.customer_segment} buyers, ` +
-    `with an estimated ${profile.estimated_ae_count} account executives. ` +
-    `Does this sound right? Feel free to correct anything before we start.`
-  )
 }
