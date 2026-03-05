@@ -144,8 +144,13 @@ export async function POST(req: NextRequest) {
     // Step 2: Website
     const websiteText = await fetchWebsiteText(domain)
 
-    // Step 3: Claude inference
-    const inference = await callClaude(pdlData, websiteText)
+    // Step 3: Claude inference (best-effort — fall back to PDL data alone if it fails)
+    let inference: ClaudeInference = {}
+    try {
+      inference = await callClaude(pdlData, websiteText)
+    } catch (err) {
+      console.error('Claude inference failed, returning PDL data only:', err)
+    }
 
     // Step 4: Merge into profile
     const profile: EnrichmentProfile = {
@@ -165,8 +170,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(profile)
   } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err)
     console.error('Enrichment error:', err)
-    return NextResponse.json({ error: 'Enrichment failed', detail }, { status: 500 })
+    return NextResponse.json({ error: 'Enrichment failed' }, { status: 500 })
   }
 }
