@@ -31,7 +31,7 @@ export default function Home() {
 
         {/* H1 */}
         <h1
-          className="mt-10 max-w-5xl text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] fade-up"
+          className="mt-10 max-w-6xl text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] fade-up"
           style={{ animationDelay: '180ms' }}
         >
           Do you have leading AI Sales Systems?
@@ -39,7 +39,7 @@ export default function Home() {
 
         {/* Subline */}
         <p
-          className="mt-6 max-w-5xl text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
+          className="mt-6 max-w-2xl text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
           style={{ animationDelay: '280ms' }}
         >
           89% of enterprises are actively investing in AI, but 53% of sales professionals admit they don&apos;t get much value out of AI tools.
@@ -54,12 +54,26 @@ export default function Home() {
           Benchmark Your AI Sales Systems
         </Link>
 
+        {/* Domain input */}
+        <div
+          className="mt-8 w-full max-w-xl fade-up"
+          style={{ animationDelay: '420ms' }}
+        >
+          <div className="flex items-center rounded-full bg-[#1a1a1a] border border-white/10 px-5 py-3.5">
+            <input
+              type="text"
+              placeholder="yourdomain.com"
+              className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+            />
+          </div>
+        </div>
+
         {/* Below-CTA line */}
         <p
           className="mt-6 text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
           style={{ animationDelay: '460ms' }}
         >
-          Will AI be your competitive advantage, or will you fall behind your competitors?
+          AI sales systems can become your GTM competitive advantage
         </p>
 
       </div>
