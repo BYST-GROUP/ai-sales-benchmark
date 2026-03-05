@@ -97,7 +97,14 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col items-center text-center px-6 w-full">
-          <p className="text-xs tracking-widest uppercase text-muted-foreground fade-up" style={{ animationDelay: '0ms' }}>
+          <span
+            className="text-xs tracking-widest uppercase text-primary border border-primary rounded-full px-4 py-1.5 inline-block bg-background fade-up"
+            style={{ animationDelay: '0ms' }}
+          >
+            For B2B AI &amp; SaaS
+          </span>
+
+          <p className="text-xs tracking-widest uppercase text-muted-foreground fade-up mt-3" style={{ animationDelay: '40ms' }}>
             AI Sales Systems Benchmark
           </p>
 
