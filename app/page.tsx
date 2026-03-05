@@ -169,7 +169,7 @@ export default function Home() {
             <span className="font-display font-normal text-xl tracking-[0.15em] text-white">BYST</span>
             <span className="mt-0.5 block h-[2px] w-full bg-[#009e8f]" />
           </div>
-          <span className="ml-auto text-sm font-medium text-white">AI Sales Benchmark</span>
+          <span className="ml-auto font-sans text-sm font-normal text-white">Sales Systems Benchmark</span>
         </header>
 
         {/* Scrollable messages */}
