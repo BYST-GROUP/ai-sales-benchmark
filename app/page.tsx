@@ -38,6 +38,7 @@ export default function Home() {
     setPhase('chat')
     setIsTyping(true)
     setStatusIndex(0)
+    window.history.pushState({}, '', '/benchmark')
   }
 
   function handleHeroKey(e: React.KeyboardEvent<HTMLInputElement>) {
