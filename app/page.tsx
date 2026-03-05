@@ -57,15 +57,14 @@ export default function Home() {
               className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none py-1.5"
             />
             <button
-              className="ml-3 flex-shrink-0 w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-white/90 transition-colors"
+              className="ml-3 flex-shrink-0 w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center hover:bg-[#222] transition-colors"
               aria-label="Start benchmark"
             >
               {/* Play icon */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
-                fill="black"
-                className="w-3.5 h-3.5 translate-x-[1px]"
+                className="w-3.5 h-3.5 translate-x-[1px] fill-primary"
               >
                 <path d="M8 5v14l11-7z" />
               </svg>
