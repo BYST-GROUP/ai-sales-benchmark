@@ -165,9 +165,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(profile)
   } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
     console.error('Enrichment error:', err)
     return NextResponse.json(
-      { error: 'The benchmark is unavailable at the moment. Please try again later.' },
+      { error: 'The benchmark is unavailable at the moment. Please try again later.', _debug: detail },
       { status: 503 }
     )
   }
