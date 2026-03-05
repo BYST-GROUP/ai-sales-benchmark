@@ -83,33 +83,24 @@ export default function Home() {
   return (
     <main className="relative min-h-screen bg-background overflow-hidden">
 
-      {/* Fixed BYST wordmark — top left */}
-      <div className="fixed top-6 left-8 z-20 flex flex-col items-start">
-        <span className="font-display font-normal text-xl tracking-[0.15em] text-white">
-          BYST
-        </span>
-        <span className="mt-1 block h-[2px] w-full bg-[#009e8f]" />
-      </div>
-
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
       <div
         className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${
           phase === 'chat' ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
-        <div className="flex flex-col items-center text-center px-6 w-full">
+        {/* Fixed BYST wordmark — hero only */}
+        <div className="fixed top-6 left-8 z-20 flex flex-col items-start">
+          <span className="font-display font-normal text-xl tracking-[0.15em] text-white">BYST</span>
+          <span className="mt-1 block h-[2px] w-full bg-[#009e8f]" />
+        </div>
 
-          <p
-            className="text-xs tracking-widest uppercase text-muted-foreground fade-up"
-            style={{ animationDelay: '0ms' }}
-          >
+        <div className="flex flex-col items-center text-center px-6 w-full">
+          <p className="text-xs tracking-widest uppercase text-muted-foreground fade-up" style={{ animationDelay: '0ms' }}>
             AI Sales Systems Benchmark
           </p>
 
-          <div
-            className="accent-line mx-auto mt-4 fade-up"
-            style={{ animationDelay: '80ms' }}
-          />
+          <div className="accent-line mx-auto mt-4 fade-up" style={{ animationDelay: '80ms' }} />
 
           <h1
             className="mt-10 max-w-6xl text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] fade-up"
@@ -126,11 +117,7 @@ export default function Home() {
             <em className="text-primary">Find out where you stand.</em>
           </p>
 
-          {/* Domain input */}
-          <div
-            className="mt-10 w-full max-w-xl fade-up"
-            style={{ animationDelay: '380ms' }}
-          >
+          <div className="mt-10 w-full max-w-xl fade-up" style={{ animationDelay: '380ms' }}>
             <div className="flex items-center rounded-full bg-[#1a1a1a] border border-white/10 px-5 py-3">
               <input
                 type="text"
@@ -152,7 +139,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* CTA */}
           <button
             onClick={handleSubmit}
             className="mt-4 rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors fade-up"
@@ -167,7 +153,6 @@ export default function Home() {
           >
             Your AI sales systems will be your GTM competitive advantage
           </p>
-
         </div>
       </div>
 
@@ -177,11 +162,19 @@ export default function Home() {
           phase === 'hero' ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
-        {/* Scrollable messages area */}
-        <div className="flex-1 overflow-y-auto pt-24 pb-6 px-4">
+        {/* Header */}
+        <header className="flex-shrink-0 h-14 border-b border-border flex items-center px-6">
+          <div className="flex flex-col items-start">
+            <span className="font-display font-normal text-xl tracking-[0.15em] text-white">BYST</span>
+            <span className="mt-0.5 block h-[2px] w-full bg-[#009e8f]" />
+          </div>
+          <span className="ml-auto text-xs text-muted-foreground">AI Sales Benchmark</span>
+        </header>
+
+        {/* Scrollable messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-8">
           <div className="mx-auto max-w-2xl flex flex-col gap-4">
 
-            {/* Rendered messages */}
             {messages.map((msg, i) =>
               msg.role === 'ai' ? (
                 <AiBubble key={i} content={msg.content} />
@@ -190,51 +183,19 @@ export default function Home() {
               )
             )}
 
-            {/* Typing indicator — initial analysis */}
             {isTyping && (
               <div className="flex flex-col gap-2">
                 <AiTypingBubble />
-                <p className="text-xs text-muted-foreground pl-1 transition-opacity duration-500">
+                <p className="text-xs text-muted-foreground pl-11">
                   {currentStatus}
                 </p>
               </div>
             )}
 
-            {/* Options row */}
-            {showOptions && !showFinalTyping && (
-              <div className="flex items-center gap-3 mt-1">
-                <button
-                  onClick={handleLooksGood}
-                  className="rounded-full text-sm font-medium px-5 py-2.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors whitespace-nowrap"
-                >
-                  Looks good
-                </button>
-                <form onSubmit={handleCorrection} className="flex flex-1 items-center rounded-full bg-[#1a1a1a] border border-white/10 px-4 py-2">
-                  <input
-                    type="text"
-                    placeholder="Correct something..."
-                    value={correction}
-                    onChange={e => setCorrection(e.target.value)}
-                    className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
-                  />
-                  <button
-                    type="submit"
-                    className="ml-2 flex-shrink-0 w-7 h-7 rounded-full border border-[#009e8f] flex items-center justify-center hover:bg-[#222] transition-colors"
-                    aria-label="Send correction"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-primary">
-                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                    </svg>
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Typing indicator — final */}
             {showFinalTyping && (
               <div className="flex flex-col gap-2">
                 <AiTypingBubble />
-                <p className="text-xs text-muted-foreground pl-1">
+                <p className="text-xs text-muted-foreground pl-11">
                   Great, let&apos;s begin...
                 </p>
               </div>
@@ -242,6 +203,44 @@ export default function Home() {
 
             <div ref={chatBottomRef} />
           </div>
+        </div>
+
+        {/* Fixed input bar */}
+        <div className="flex-shrink-0 border-t border-border bg-background px-4 py-4">
+          <form
+            onSubmit={handleCorrection}
+            className="mx-auto max-w-2xl flex items-center gap-3"
+          >
+            {showOptions && !showFinalTyping && (
+              <button
+                type="button"
+                onClick={handleLooksGood}
+                className="flex-shrink-0 rounded-full text-sm font-medium px-5 py-2.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors whitespace-nowrap"
+              >
+                Looks good
+              </button>
+            )}
+            <div className="flex flex-1 items-center rounded-full bg-[#1a1a1a] border border-white/10 px-4 py-2.5">
+              <input
+                type="text"
+                placeholder={showOptions && !showFinalTyping ? 'Correct something...' : 'Waiting for analysis...'}
+                value={correction}
+                onChange={e => setCorrection(e.target.value)}
+                disabled={!showOptions || showFinalTyping}
+                className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none disabled:opacity-40"
+              />
+              <button
+                type="submit"
+                disabled={!showOptions || showFinalTyping}
+                className="ml-2 flex-shrink-0 w-7 h-7 rounded-full border border-[#009e8f] flex items-center justify-center hover:bg-[#222] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Send correction"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-primary">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -251,27 +250,39 @@ export default function Home() {
 
 function AiBubble({ content }: { content: string }) {
   return (
-    <div className="self-start max-w-[85%] bg-card border border-border rounded p-4 text-sm text-foreground whitespace-pre-line">
-      {content}
+    <div className="flex items-start gap-3">
+      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+        <span className="text-xs font-semibold text-white">B</span>
+      </div>
+      <div className="max-w-xl bg-card border border-border rounded-lg p-4 text-sm text-foreground whitespace-pre-line">
+        {content}
+      </div>
     </div>
   )
 }
 
 function UserBubble({ content }: { content: string }) {
   return (
-    <div className="self-end max-w-[85%] bg-primary/10 border border-primary/20 rounded p-4 text-sm text-right text-foreground">
-      {content}
+    <div className="flex justify-end">
+      <div className="max-w-xl bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm text-foreground">
+        {content}
+      </div>
     </div>
   )
 }
 
 function AiTypingBubble() {
   return (
-    <div className="self-start bg-card border border-border rounded p-4">
-      <div className="flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '300ms' }} />
+    <div className="flex items-start gap-3">
+      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+        <span className="text-xs font-semibold text-white">B</span>
+      </div>
+      <div className="bg-card border border-border rounded-lg p-4">
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
       </div>
     </div>
   )
