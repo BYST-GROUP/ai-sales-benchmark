@@ -158,7 +158,7 @@ export default function Home() {
 
       {/* ── Chat ──────────────────────────────────────────────────────────────── */}
       <div
-        className={`absolute inset-0 flex flex-col transition-opacity duration-500 ${
+        className={`absolute inset-0 flex flex-col font-sans transition-opacity duration-500 ${
           phase === 'hero' ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
@@ -168,7 +168,7 @@ export default function Home() {
             <span className="font-display font-normal text-xl tracking-[0.15em] text-white">BYST</span>
             <span className="mt-0.5 block h-[2px] w-full bg-[#009e8f]" />
           </div>
-          <span className="ml-auto text-xs text-muted-foreground">AI Sales Benchmark</span>
+          <span className="ml-auto text-sm font-medium text-white">AI Sales Benchmark</span>
         </header>
 
         {/* Scrollable messages */}
@@ -254,7 +254,7 @@ function AiBubble({ content }: { content: string }) {
       <div className="flex-shrink-0 w-7 h-7 rounded-full bg-black border border-[#009e8f] flex items-center justify-center">
         <span className="text-xs font-semibold text-[#009e8f]">B</span>
       </div>
-      <div className="max-w-xl p-4 text-sm text-foreground whitespace-pre-line">
+      <div className="max-w-xl p-4 text-sm text-white leading-relaxed whitespace-pre-line">
         {content}
       </div>
     </div>
@@ -264,7 +264,7 @@ function AiBubble({ content }: { content: string }) {
 function UserBubble({ content }: { content: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-xl bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm text-foreground">
+      <div className="max-w-xl bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm text-white">
         {content}
       </div>
     </div>
