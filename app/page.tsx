@@ -5,10 +5,11 @@ export default function Home() {
     <main className="relative min-h-screen bg-background flex items-center justify-center overflow-hidden">
 
       {/* Fixed BYST wordmark — top left */}
-      <div className="fixed top-6 left-8 z-10 flex items-center h-12">
-        <span className="font-display font-bold text-xl tracking-tight text-foreground">
+      <div className="fixed top-6 left-8 z-10 flex flex-col items-start">
+        <span className="font-display font-normal text-xl tracking-[0.15em] text-white">
           BYST
         </span>
+        <span className="mt-1 block h-[2px] w-full bg-[#009e8f]" />
       </div>
 
       {/* Hero content — centered */}
@@ -33,7 +34,7 @@ export default function Home() {
           className="mt-10 max-w-3xl text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] fade-up"
           style={{ animationDelay: '180ms' }}
         >
-          Is your sales organisation leading on AI&nbsp;— or falling behind?
+          Discover if you have leading AI Sales Systems
         </h1>
 
         {/* Subline */}
@@ -41,7 +42,7 @@ export default function Home() {
           className="mt-6 max-w-xl text-base md:text-lg leading-relaxed text-secondary-foreground fade-up"
           style={{ animationDelay: '280ms' }}
         >
-          89% of enterprises are actively investing in AI. Find out if your sales org is ahead, behind, or at risk.
+          89% of enterprises are actively investing in AI, but 53% of sales professionals admit they don&apos;t get much value out of AI tools. Will AI be your competitive advantage, or will you fall behind your competitors?
         </p>
 
         {/* CTA */}
