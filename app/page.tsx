@@ -64,9 +64,14 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain: d }),
       })
-      if (!res.ok) throw new Error('API error')
-      const profile: EnrichmentProfile = await res.json()
-      resolvedMessage.current = formatEnrichmentMessage(profile)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        resolvedMessage.current =
+          body?.error ?? "I couldn't find data for this domain. Can you tell me a bit about your company?"
+      } else {
+        const profile: EnrichmentProfile = await res.json()
+        resolvedMessage.current = formatEnrichmentMessage(profile)
+      }
     } catch {
       resolvedMessage.current =
         "I couldn't find data for this domain. Can you tell me a bit about your company?"
@@ -98,7 +103,7 @@ export default function Home() {
         clearStatusTimers()
         setIsTyping(false)
         const msg = resolvedMessage.current
-        const isFallback = msg.startsWith("I couldn't find")
+        const isFallback = msg.startsWith("I couldn't find") || msg.startsWith('The benchmark is unavailable')
         setMessages([{ role: 'ai', content: msg }])
         setShowOptions(!isFallback)
       }
