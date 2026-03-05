@@ -251,10 +251,10 @@ export default function Home() {
 function AiBubble({ content }: { content: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-        <span className="text-xs font-semibold text-white">B</span>
+      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-black border border-[#009e8f] flex items-center justify-center">
+        <span className="text-xs font-semibold text-[#009e8f]">B</span>
       </div>
-      <div className="max-w-xl bg-card border border-border rounded-lg p-4 text-sm text-foreground whitespace-pre-line">
+      <div className="max-w-xl p-4 text-sm text-foreground whitespace-pre-line">
         {content}
       </div>
     </div>
@@ -274,10 +274,10 @@ function UserBubble({ content }: { content: string }) {
 function AiTypingBubble() {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-        <span className="text-xs font-semibold text-white">B</span>
+      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-black border border-[#009e8f] flex items-center justify-center">
+        <span className="text-xs font-semibold text-[#009e8f]">B</span>
       </div>
-      <div className="bg-card border border-border rounded-lg p-4">
+      <div className="p-4">
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }} />
           <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }} />
