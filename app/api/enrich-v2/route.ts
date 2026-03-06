@@ -69,7 +69,7 @@ JSON schema:
 
 Rules for structured fields:
 - product_type must be exactly one of: SaaS, AI, Agency, Professional Services, Info-product, Hardware
-- gtm_motion must be exactly PLG or SLG — never "Hybrid"; if hybrid, pick the dominant motion
+- gtm_motion must be exactly PLG or SLG or Hybrid;
 - customer_segment must be exactly one of: SMB, Mid-Market, Enterprise — if mixed, pick the most dominant
 - buyer_persona: maximum 3 personas, comma-separated
 - estimated_acv: best estimate in USD as an integer; null only if truly impossible to estimate
@@ -87,7 +87,6 @@ Rules for enrichment_message:
 - End with an open, natural question to confirm if your findings are correct
 - If funding stage is known, mention it
 - Use new lines to make the message more readable
-- Describe GTM motion as "sales-led" or "product-led" — never "hybrid" or "mixed"
 - Style reference (do NOT copy verbatim): "From what I can see, Brevo is a B2B SaaS company targeting mid-market sales and revenue operations teams — likely with a sales-led motion and somewhere in the range of 15–25 AEs closing deals in the $15K–$40K ACV range. Am I correct, what would you add?"
 - Adapt naturally to the specific company profile — never copy the example
 - Return only the message text in this field, no JSON, no markdown within the message`,
