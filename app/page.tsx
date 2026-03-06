@@ -46,6 +46,11 @@ export default function Home() {
   const [isStreaming, setIsStreaming] = useState(false)
   const streamIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Voice input state
+  const [isRecording, setIsRecording] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null)
+
   const submittedDomain = useRef('')
   const sessionIdRef = useRef('')
   const chatBottomRef = useRef<HTMLDivElement>(null)
@@ -57,6 +62,7 @@ export default function Home() {
   useEffect(() => {
     return () => {
       if (streamIntervalRef.current) clearInterval(streamIntervalRef.current)
+      recognitionRef.current?.stop()
     }
   }, [])
 
@@ -83,6 +89,44 @@ export default function Home() {
         onComplete?.()
       }
     }, 14)
+  }
+
+  // Voice input — fixed: separate final/interim transcripts, single utterance mode
+  function toggleMic(setInput: React.Dispatch<React.SetStateAction<string>>) {
+    if (isRecording) {
+      recognitionRef.current?.stop()
+      setIsRecording(false)
+      return
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rec = new SR() as any
+    rec.lang = 'en-US'
+    rec.continuous = false
+    rec.interimResults = true
+    let finalTranscript = ''
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalTranscript += e.results[i][0].transcript
+        } else {
+          interim += e.results[i][0].transcript
+        }
+      }
+      setInput(finalTranscript + interim)
+    }
+    rec.onerror = () => setIsRecording(false)
+    rec.onend = () => {
+      setIsRecording(false)
+      if (finalTranscript) setInput(finalTranscript)
+    }
+    recognitionRef.current = rec
+    setIsRecording(true)
+    rec.start()
   }
 
   function handleSubmit() {
@@ -431,6 +475,7 @@ export default function Home() {
                     className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
                     autoFocus
                   />
+                  <MicButton isRecording={isRecording} onClick={() => toggleMic(setCorrection)} />
                   <button
                     type="submit"
                     disabled={!correction.trim()}
@@ -455,6 +500,7 @@ export default function Home() {
                   className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
                   autoFocus
                 />
+                <MicButton isRecording={isRecording} onClick={() => toggleMic(setBenchmarkInput)} />
                 <button
                   type="submit"
                   disabled={!benchmarkInput.trim()}
@@ -477,6 +523,7 @@ export default function Home() {
                   className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
                   autoFocus
                 />
+                <MicButton isRecording={isRecording} onClick={() => toggleMic(setCorrection)} />
                 <button
                   type="submit"
                   disabled={!correction.trim()}
@@ -669,5 +716,24 @@ function AiTypingBubble() {
       <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }} />
       <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '300ms' }} />
     </div>
+  )
+}
+
+function MicButton({ isRecording, onClick }: { isRecording: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+      className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full transition-all ${
+        isRecording
+          ? 'bg-red-500 text-white animate-pulse'
+          : 'text-[#8c8c8c] hover:text-white'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+    </button>
   )
 }
