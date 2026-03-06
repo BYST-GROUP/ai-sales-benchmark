@@ -267,9 +267,9 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showFinalTyping])
 
-  async function handleBenchmarkAnswer(e?: React.FormEvent) {
+  async function handleBenchmarkAnswer(e?: React.FormEvent, overrideText?: string) {
     e?.preventDefault()
-    const trimmed = benchmarkInput.trim()
+    const trimmed = (overrideText ?? benchmarkInput).trim()
     if (!trimmed || !currentQuestionId || isBenchmarkLoading || isStreaming) return
 
     setMessages(prev => [...prev, { role: 'user', content: trimmed }])
@@ -532,28 +532,78 @@ export default function Home() {
 
               </div>
             ) : benchmarkPhase === 'questioning' && !isBenchmarkLoading && !isStreaming ? (
-              /* Benchmark free-text answer input */
-              <form onSubmit={handleBenchmarkAnswer} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
-                <input
-                  type="text"
-                  placeholder="Your answer..."
-                  value={benchmarkInput}
-                  onChange={e => setBenchmarkInput(e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
-                  autoFocus
-                />
-                <MicButton isRecording={isRecording} onClick={() => toggleMic(setBenchmarkInput)} />
-                <button
-                  type="submit"
-                  disabled={!benchmarkInput.trim()}
-                  aria-label="Send answer"
-                  className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-white">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                  </svg>
-                </button>
-              </form>
+              /* Benchmark input — options panel or free-text */
+              (() => {
+                const currentQuestion = currentQuestionId ? QUESTION_MAP[currentQuestionId] : null
+                const opts = currentQuestion?.options
+                if (opts && opts.length > 0) {
+                  return (
+                    <div className="bg-card border border-border rounded-xl overflow-hidden">
+                      {opts.map((opt, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => handleBenchmarkAnswer(undefined, opt)}
+                          className="w-full flex items-center gap-4 px-4 py-3.5 border-b border-border hover:bg-white/5 transition-colors text-left"
+                        >
+                          <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center text-xs font-medium text-muted-foreground">
+                            {i + 1}
+                          </span>
+                          <span className="text-sm text-white">{opt}</span>
+                        </button>
+                      ))}
+                      <form onSubmit={handleBenchmarkAnswer} className="flex items-center gap-3 px-4 py-3.5">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-3 h-3 fill-muted-foreground">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                          </svg>
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Something else..."
+                          value={benchmarkInput}
+                          onChange={e => setBenchmarkInput(e.target.value)}
+                          className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+                        />
+                        <MicButton isRecording={isRecording} onClick={() => toggleMic(setBenchmarkInput)} />
+                        <button
+                          type="submit"
+                          disabled={!benchmarkInput.trim()}
+                          aria-label="Send answer"
+                          className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                          </svg>
+                        </button>
+                      </form>
+                    </div>
+                  )
+                }
+                return (
+                  <form onSubmit={handleBenchmarkAnswer} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
+                    <input
+                      type="text"
+                      placeholder="Your answer..."
+                      value={benchmarkInput}
+                      onChange={e => setBenchmarkInput(e.target.value)}
+                      className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+                      autoFocus
+                    />
+                    <MicButton isRecording={isRecording} onClick={() => toggleMic(setBenchmarkInput)} />
+                    <button
+                      type="submit"
+                      disabled={!benchmarkInput.trim()}
+                      aria-label="Send answer"
+                      className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                      </svg>
+                    </button>
+                  </form>
+                )
+              })()
             ) : !showOptions && !isTyping && messages.length > 0 && messages[messages.length - 1].role === 'ai' && messages[messages.length - 1].content.startsWith("I couldn't find") ? (
               /* Fallback free-text input */
               <form onSubmit={handleCorrection} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">

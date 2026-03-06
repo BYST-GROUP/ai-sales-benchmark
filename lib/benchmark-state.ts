@@ -59,7 +59,7 @@ export function applyScores(
   const answeredIds = new Set(Object.keys(updatedScores))
   const remaining = ALL_QUESTION_IDS.filter(id => !answeredIds.has(id))
 
-  const pillar1 = normalisePillar(updatedScores, ['Q1', 'Q2', 'Q3', 'Q4', 'Q5'])
+  const pillar1 = normalisePillar(updatedScores, ['Q1', 'Q2', 'Q3', 'Q5'])
   const pillar2 = normalisePillar(updatedScores, ['Q6', 'Q7', 'Q8'])
   const pillar3 = normalisePillar(updatedScores, ['Q9', 'Q10'])
   const totalScore = Math.round((pillar1 + pillar2 + pillar3) / 3)
