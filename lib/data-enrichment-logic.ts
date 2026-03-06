@@ -153,7 +153,7 @@ Rules:
 - If the company serves multiple segments, pick the most dominant one
 - If the GTM motion is hybrid, default to whichever motion is most dominant — sales-led or product-led
 - End with a short, natural conversational question.
-- Use new lines to make the message more readable.
+- Use new lines to make the message more readable. Use short paragraphs.
 - Return only the message text, no JSON, no markdown`,
     messages: [
       {
