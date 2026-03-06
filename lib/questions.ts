@@ -38,7 +38,7 @@ export const QUESTIONS: Question[] = [
     options: [
       "They loop in a solutions engineer or follow up after the call",
       "They look it up themselves or use ChatGPT to draft a response",
-      "They have a real-time AI tool that surfaces answers during the call",
+      "They have an AI agent that is trained on company data and provides answers",
     ],
   },
   {
@@ -58,7 +58,7 @@ export const QUESTIONS: Question[] = [
     options: [
       "Not really — it's mostly gut feel and experience",
       "We listen to their calls occasionally and share learnings ad hoc",
-      "Yes — we analyse their patterns and systematically coach the rest of the team from that",
+      "Yes, we proactively push winning behaviours to all the reps after the sales call",
     ],
   },
   {
@@ -68,7 +68,7 @@ export const QUESTIONS: Question[] = [
     options: [
       "Mainly during 1:1s or quarterly reviews",
       "A few times a month when we flag specific calls to review",
-      "Regularly, with structured AI-generated coaching summaries per rep",
+      "After every call, they get feedback based on how they performed",
     ],
   },
   {
@@ -78,7 +78,7 @@ export const QUESTIONS: Question[] = [
     options: [
       "They shadow senior reps and ramp over 3–6 months",
       "We have a structured plan with recorded calls and written playbooks",
-      "We have an AI-powered onboarding with call simulations and objection training",
+      "We have a structured system that ramps the rep on the key pillars - using playbooks, battlecards, and call recordings",
     ],
   },
   {
