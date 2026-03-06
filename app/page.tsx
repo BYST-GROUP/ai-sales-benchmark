@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { QUESTIONS, QUESTION_MAP } from '@/lib/questions'
 import { BenchmarkState, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
 import { scoreAnswer, getSkippedQuestions } from '@/lib/benchmark-scoring'
+import { MaturityLabel, CURRENT_STAGE_CONTENT, NEXT_STAGE_CONTENT } from '@/lib/results-content'
+import MaturityCurveChart from '@/components/MaturityCurveChart'
 
 type Phase = 'hero' | 'chat' | 'results'
 
@@ -463,18 +465,19 @@ export default function Home() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 py-10">
-          <div className="mx-auto max-w-2xl flex flex-col gap-8">
+          <div className="mx-auto max-w-2xl flex flex-col gap-6">
 
-            {/* Overall score */}
-            <div className="border border-border rounded-xl p-8 flex flex-col items-center text-center gap-3">
+            {/* 1 — Overall score */}
+            <div className="border border-border rounded-xl p-8 flex flex-col items-center text-center gap-3 bg-card">
               <p className="text-xs tracking-widest uppercase text-muted-foreground">Overall AI Maturity</p>
-              <div className="text-7xl font-display font-semibold text-primary">{benchmarkState.totalScore}</div>
-              <p className="text-lg font-display font-semibold text-white">{benchmarkState.maturityLabel}</p>
-              <p className="text-sm text-muted-foreground">{benchmarkState.maturityStage}</p>
+              <div className="text-7xl font-display font-semibold text-primary leading-none py-2">
+                {benchmarkState.totalScore}
+              </div>
+              <p className="text-xl font-display font-semibold text-white">{benchmarkState.maturityLabel}</p>
             </div>
 
-            {/* Pillar scores */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* 2 — Pillar scores */}
+            <div className="grid grid-cols-3 gap-3">
               {(
                 [
                   { label: 'AE Systems', score: benchmarkState.pillarScores.pillar1 },
@@ -482,10 +485,10 @@ export default function Home() {
                   { label: 'Enablement', score: benchmarkState.pillarScores.pillar3 },
                 ] as const
               ).map(({ label, score }) => (
-                <div key={label} className="border border-border rounded-xl p-5 flex flex-col items-center gap-2">
+                <div key={label} className="border border-border rounded-xl p-5 flex flex-col items-center gap-2 bg-card">
                   <p className="text-xs text-muted-foreground text-center leading-snug">{label}</p>
                   <p className="text-3xl font-display font-semibold text-white">{score}</p>
-                  <div className="w-full h-1 rounded-full bg-border overflow-hidden">
+                  <div className="w-full h-1 rounded-full bg-border overflow-hidden mt-1">
                     <div
                       className="h-full bg-primary rounded-full transition-all duration-700"
                       style={{ width: `${score}%` }}
@@ -495,7 +498,75 @@ export default function Home() {
               ))}
             </div>
 
-            {/* CTA */}
+            {/* 3 — What this means for you */}
+            {benchmarkState.maturityLabel && (() => {
+              const label = benchmarkState.maturityLabel as MaturityLabel
+              const content = CURRENT_STAGE_CONTENT[label]
+              if (!content) return null
+              return (
+                <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
+                  <p className="text-xs tracking-widest uppercase text-muted-foreground">What This Means For You</p>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-xs font-medium text-primary uppercase tracking-wider">What you&apos;re doing</p>
+                      <p className="text-sm text-secondary-foreground leading-relaxed">{content.whatYoureDoing}</p>
+                    </div>
+                    <div className="h-px bg-border" />
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-xs font-medium text-primary uppercase tracking-wider">What you&apos;re experiencing</p>
+                      <p className="text-sm text-secondary-foreground leading-relaxed">{content.whatYoureExperiencing}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* 4 — What the next stage looks like */}
+            {benchmarkState.maturityLabel && (() => {
+              const label = benchmarkState.maturityLabel as MaturityLabel
+              const next = NEXT_STAGE_CONTENT[label]
+              if (!next) {
+                return (
+                  <div className="border border-primary/20 rounded-xl p-6 bg-primary/5 flex flex-col gap-3">
+                    <p className="text-xs tracking-widest uppercase text-primary">You&apos;re at the Top</p>
+                    <p className="text-sm text-secondary-foreground leading-relaxed">
+                      You&apos;re operating at the highest level of AI maturity. The focus now is staying ahead — continuously retraining your systems, embedding new capabilities, and using your proprietary data as a competitive moat.
+                    </p>
+                  </div>
+                )
+              }
+              return (
+                <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <p className="text-xs tracking-widest uppercase text-muted-foreground">The Next Stage</p>
+                    <span className="text-xs font-medium text-primary border border-primary/30 rounded-full px-2.5 py-0.5">
+                      {next.title}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-xs font-medium text-primary uppercase tracking-wider">What it looks like</p>
+                      <p className="text-sm text-secondary-foreground leading-relaxed">{next.whatItLooksLike}</p>
+                    </div>
+                    <div className="h-px bg-border" />
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-xs font-medium text-primary uppercase tracking-wider">Why it matters</p>
+                      <p className="text-sm text-secondary-foreground leading-relaxed">{next.whyItMatters}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* 5 — Maturity curve */}
+            <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
+              <p className="text-xs tracking-widest uppercase text-muted-foreground">AI Maturity Curve</p>
+              {benchmarkState.maturityLabel && (
+                <MaturityCurveChart maturityLabel={benchmarkState.maturityLabel as MaturityLabel} />
+              )}
+            </div>
+
+            {/* 6 — CTA */}
             <div className="border border-primary/30 rounded-xl p-8 flex flex-col items-center text-center gap-4 bg-primary/5">
               <p className="font-display font-semibold text-white text-xl">See what AI-native looks like for your team</p>
               <p className="text-sm text-secondary-foreground max-w-md">
