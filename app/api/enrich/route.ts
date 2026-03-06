@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { inferACV, inferCustomerCount, inferGTMMotion } from '@/lib/data-enrichment-logic'
 import type { CompanyProfile } from '@/types'
 import { appendLog } from '@/lib/logger'
-import { getCachedEnrichment, setCachedEnrichment } from '@/lib/enrichment-cache'
+//import { getCachedEnrichment, setCachedEnrichment } from '@/lib/enrichment-cache'
 
 export const maxDuration = 30
 
