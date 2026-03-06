@@ -125,27 +125,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'domain is required' }, { status: 400 })
     }
 
-    // Step 1: Check cache — skip Claude if data is < 6 months old
-    const cached = getCachedEnrichment(domain)
-    if (cached) {
-      appendLog({
-        event: 'enrichment_cache_hit',
-        sessionId,
-        domain,
-        cachedAt: cached.cachedAt,
-        profile: cached.profile,
-        enrichment_message: cached.enrichment_message,
-      })
-      return NextResponse.json({ ...cached.profile, enrichment_message: cached.enrichment_message })
-    }
-
-    // Step 2: Fetch website text
+    // Step 1: Fetch website text
     const websiteText = await fetchWebsiteText(domain)
-
-    // Step 3: Single Claude call — infers all company data + generates enrichment message
+ 
+    // Step 2: Single Claude call — infers all company data + generates enrichment message
     const claudeResponse = await callClaudeV2(domain, websiteText)
-
-    // Step 4: Build CompanyProfile using Claude data + business logic
+ 
+    // Step 3: Build CompanyProfile using Claude data + business logic
     const customerSegment = claudeResponse.customer_segment ?? 'Mid-Market'
     const hasFreePlan = claudeResponse.has_free_plan ?? false
     const estimatedACV = claudeResponse.estimated_acv ?? inferACV(claudeResponse.yearly_revenue, null, customerSegment)
@@ -154,7 +140,7 @@ export async function POST(req: NextRequest) {
     const estimatedAECount = claudeResponse.sales_people_count
       ? formatAERange(claudeResponse.sales_people_count)
       : '—'
-
+ 
     const profile: CompanyProfile = {
       display_name: claudeResponse.display_name ?? domain,
       industry: claudeResponse.product_type ?? 'Unknown',
@@ -171,17 +157,6 @@ export async function POST(req: NextRequest) {
       estimated_ae_count: estimatedAECount,
       estimated_customer_count: estimatedCustomerCount,
     }
-
-    // Step 5: Persist to cache
-    setCachedEnrichment(domain, profile, claudeResponse.enrichment_message)
-
-    appendLog({
-      event: 'enrichment_complete',
-      sessionId,
-      domain,
-      profile,
-      enrichment_message: claudeResponse.enrichment_message,
-    })
 
     return NextResponse.json({ ...profile, enrichment_message: claudeResponse.enrichment_message })
   } catch (err) {
