@@ -95,6 +95,7 @@ export default function Home() {
   function toggleMic(setInput: React.Dispatch<React.SetStateAction<string>>) {
     if (isRecording) {
       recognitionRef.current?.stop()
+      setIsRecording(false)
       return
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,11 +104,15 @@ export default function Home() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rec = new SR() as any
     rec.lang = 'en-US'
-    rec.interimResults = false
+    rec.continuous = true
+    rec.interimResults = true
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
-      const transcript: string = e.results[0]?.[0]?.transcript ?? ''
-      if (transcript) setInput(transcript)
+      let transcript = ''
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript
+      }
+      setInput(transcript)
     }
     rec.onerror = () => setIsRecording(false)
     rec.onend = () => setIsRecording(false)
@@ -714,7 +719,7 @@ function MicButton({ isRecording, onClick }: { isRecording: boolean; onClick: ()
       aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
       className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full transition-all ${
         isRecording
-          ? 'text-red-400 animate-pulse'
+          ? 'bg-red-500 text-white animate-pulse'
           : 'text-[#8c8c8c] hover:text-white'
       }`}
     >
