@@ -74,7 +74,7 @@ Rules for structured fields:
 - buyer_persona: maximum 3 personas, comma-separated
 - estimated_acv: best estimate in USD as an integer; null only if truly impossible to estimate
 - yearly_revenue: annual revenue in USD as an integer; null if unknown
-- sales_people_count: estimated number of AEs/sales reps as an integer; null if unknown
+- sales_people_count: estimated number of AEs/sales reps as an integer; make your best estimate using all available signals — company size, customer segment, GTM motion, funding stage, ACV, and industry norms; only return null if there is genuinely no basis for any estimate whatsoever
 - funding_stage: e.g. "Seed", "Series A", "Series B", "Public", null if bootstrapped or unknown
 - last_funding_date: YYYY-MM format, null if unknown
 - has_free_plan: true if the company offers a permanent free tier (not just a trial)
@@ -85,6 +85,7 @@ Rules for enrichment_message:
 - Present findings as informed research, not facts set in stone
 - Make it clear you expect them to correct anything that's off
 - End with an open, natural question to confirm if your findings are correct
+- Always mention your estimate of the sales team size (e.g. "somewhere in the range of 8–12 AEs") — this is a key data point; if you are less confident, frame it as a rough estimate
 - If funding stage is known, mention it
 - Use new lines to make the message more readable
 - Style reference (do NOT copy verbatim): "From what I can see, Brevo is a B2B SaaS company targeting mid-market sales and revenue operations teams — likely with a sales-led motion and somewhere in the range of 15–25 AEs closing deals in the $15K–$40K ACV range. Am I correct, what would you add?"
