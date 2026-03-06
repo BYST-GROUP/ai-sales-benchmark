@@ -669,29 +669,39 @@ export default function Home() {
               <p className="text-xl font-display font-semibold text-white">{benchmarkState.maturityLabel}</p>
             </div>
 
-            {/* 2 — Pillar scores */}
-            <div className="grid grid-cols-3 gap-3">
-              {(
-                [
-                  { label: 'AE Systems', score: benchmarkState.pillarScores.pillar1 },
-                  { label: 'Leadership Systems', score: benchmarkState.pillarScores.pillar2 },
-                  { label: 'Enablement', score: benchmarkState.pillarScores.pillar3 },
-                ] as const
-              ).map(({ label, score }) => (
-                <div key={label} className="border border-border rounded-xl p-5 flex flex-col items-center gap-2 bg-card">
-                  <p className="text-xs text-muted-foreground text-center leading-snug">{label}</p>
-                  <p className="text-3xl font-display font-semibold text-white">{score}</p>
-                  <div className="w-full h-1 rounded-full bg-border overflow-hidden mt-1">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all duration-700"
-                      style={{ width: `${score}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+            {/* 2 — Maturity curve (moved here) */}
+            <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
+              <p className="text-xs tracking-widest uppercase text-muted-foreground">AI Maturity Curve</p>
+              {benchmarkState.maturityLabel && (
+                <MaturityCurveChart maturityLabel={benchmarkState.maturityLabel as MaturityLabel} />
+              )}
             </div>
 
-            {/* 3 — What this means for you */}
+            {/* 3 — Pillar scores (hidden — toggle false to show) */}
+            {false && (
+              <div className="grid grid-cols-3 gap-3">
+                {(
+                  [
+                    { label: 'AE Systems', score: benchmarkState.pillarScores.pillar1 },
+                    { label: 'Leadership Systems', score: benchmarkState.pillarScores.pillar2 },
+                    { label: 'Enablement', score: benchmarkState.pillarScores.pillar3 },
+                  ] as const
+                ).map(({ label, score }) => (
+                  <div key={label} className="border border-border rounded-xl p-5 flex flex-col items-center gap-2 bg-card">
+                    <p className="text-xs text-muted-foreground text-center leading-snug">{label}</p>
+                    <p className="text-3xl font-display font-semibold text-white">{score}</p>
+                    <div className="w-full h-1 rounded-full bg-border overflow-hidden mt-1">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-700"
+                        style={{ width: `${score}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 4 — What this means for you (current stage) */}
             {benchmarkState.maturityLabel && (() => {
               const label = benchmarkState.maturityLabel as MaturityLabel
               const content = CURRENT_STAGE_CONTENT[label]
@@ -714,7 +724,7 @@ export default function Home() {
               )
             })()}
 
-            {/* 4 — What the next stage looks like */}
+            {/* 5 — What the next stage looks like */}
             {benchmarkState.maturityLabel && (() => {
               const label = benchmarkState.maturityLabel as MaturityLabel
               const next = NEXT_STAGE_CONTENT[label]
@@ -746,18 +756,19 @@ export default function Home() {
                       <p className="text-xs font-medium text-primary uppercase tracking-wider">Why it matters</p>
                       <p className="text-sm text-secondary-foreground leading-relaxed">{next.whyItMatters}</p>
                     </div>
+                    <div className="h-px bg-border" />
+                    <div className="grid grid-cols-2 gap-3">
+                      {next.impactStats.map(stat => (
+                        <div key={stat.label} className="bg-background border border-border rounded-lg p-4 flex flex-col gap-1">
+                          <p className="text-lg font-display font-semibold text-primary">{stat.value}</p>
+                          <p className="text-xs text-muted-foreground">{stat.label}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )
             })()}
-
-            {/* 5 — Maturity curve */}
-            <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
-              <p className="text-xs tracking-widest uppercase text-muted-foreground">AI Maturity Curve</p>
-              {benchmarkState.maturityLabel && (
-                <MaturityCurveChart maturityLabel={benchmarkState.maturityLabel as MaturityLabel} />
-              )}
-            </div>
 
             {/* 6 — CTA */}
             <div className="border border-primary/30 rounded-xl p-8 flex flex-col items-center text-center gap-4 bg-primary/5">

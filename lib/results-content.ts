@@ -10,10 +10,16 @@ export interface CurrentStageContent {
   whatYoureExperiencing: string
 }
 
+export interface ImpactStat {
+  label: string
+  value: string
+}
+
 export interface NextStageContent {
   title: string
   whatItLooksLike: string
   whyItMatters: string
+  impactStats: ImpactStat[]
 }
 
 export const CURRENT_STAGE_CONTENT: Record<MaturityLabel, CurrentStageContent> = {
@@ -56,6 +62,12 @@ export const NEXT_STAGE_CONTENT: Record<MaturityLabel, NextStageContent | null> 
       "Your team starts adopting shared AI tools with a consistent standard. Call recording is in place, reps have AI-assisted follow-up workflows, and managers have visibility into what's working.",
     whyItMatters:
       "Moving from ad-hoc to structured AI adoption is where the first measurable productivity gains appear — typically 20–30% reduction in admin time per rep.",
+    impactStats: [
+      { label: 'Admin time saved', value: '~1.5 hrs/rep/day' },
+      { label: 'Selling time increase', value: '+25% per rep' },
+      { label: 'OTE attainment lift', value: '+10–15%' },
+      { label: 'Win rate improvement', value: '+8–12%' },
+    ],
   },
   'AI Experimenting': {
     title: 'AI Enabled',
@@ -63,6 +75,12 @@ export const NEXT_STAGE_CONTENT: Record<MaturityLabel, NextStageContent | null> 
       "Your AI tools are connected to your CRM. Summaries, next steps, and CRM fields update automatically after every call. Reps start every meeting with an AI-generated brief.",
     whyItMatters:
       "This is the stage where selling time increases meaningfully — reps stop losing hours to admin and start spending that time with prospects.",
+    impactStats: [
+      { label: 'Admin time saved', value: '~2.5 hrs/rep/day' },
+      { label: 'Selling time increase', value: '+35% per rep' },
+      { label: 'OTE attainment lift', value: '+15–20%' },
+      { label: 'Ramp time reduction', value: '30–40% faster' },
+    ],
   },
   'AI Enabled': {
     title: 'AI Leading',
@@ -70,6 +88,12 @@ export const NEXT_STAGE_CONTENT: Record<MaturityLabel, NextStageContent | null> 
       "AI surfaces insights proactively — deal risk alerts, coaching signals, win pattern analysis. Your managers stop reacting and start leading with data.",
     whyItMatters:
       "Teams at this stage see significantly better forecast accuracy and faster identification of underperforming reps — before the quarter is already at risk.",
+    impactStats: [
+      { label: 'Admin time saved', value: '~3.5 hrs/rep/day' },
+      { label: 'OTE attainment lift', value: '+20–25%' },
+      { label: 'Forecast accuracy', value: '+20% improvement' },
+      { label: 'Win rate improvement', value: '+18–25%' },
+    ],
   },
   'AI Leading': {
     title: 'AI Native',
@@ -77,6 +101,12 @@ export const NEXT_STAGE_CONTENT: Record<MaturityLabel, NextStageContent | null> 
       "Every GTM workflow runs automatically. Prospecting, outreach, follow-up, coaching, and forecasting all happen with AI as the operating layer — not a tool on top.",
     whyItMatters:
       "AI Native organisations compound their advantage over time. The system gets smarter with every deal, every call, and every rep interaction.",
+    impactStats: [
+      { label: 'Admin time saved', value: '4+ hrs/rep/day' },
+      { label: 'Pipeline capacity', value: '2× per rep' },
+      { label: 'OTE attainment lift', value: '+35–40%' },
+      { label: 'Win rate improvement', value: '+30%+' },
+    ],
   },
   'AI Native': null,
 }
