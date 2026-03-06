@@ -52,6 +52,7 @@ export default function Home() {
   const recognitionRef = useRef<any>(null)
 
   const submittedDomain = useRef('')
+  const sessionIdRef = useRef('')
   const chatBottomRef = useRef<HTMLDivElement>(null)
   const statusTimers = useRef<ReturnType<typeof setTimeout>[]>([])
   const resolvedMessage = useRef<string | null>(null)
@@ -119,12 +120,19 @@ export default function Home() {
     const trimmed = domain.trim()
     if (!trimmed) return
     submittedDomain.current = trimmed
+    sessionIdRef.current = crypto.randomUUID()
     resolvedMessage.current = null
     apiDone.current = false
     setPhase('chat')
     setIsTyping(true)
     setStatusIndex(0)
     window.history.pushState({}, '', '/benchmark')
+    // Fire-and-forget: log domain submission
+    fetch('/api/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'domain_submit', sessionId: sessionIdRef.current, domain: trimmed }),
+    }).catch(() => {})
     runEnrichment(trimmed)
   }
 
@@ -137,7 +145,7 @@ export default function Home() {
       const res = await fetch('/api/enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain: d }),
+        body: JSON.stringify({ domain: d, sessionId: sessionIdRef.current }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -235,7 +243,7 @@ export default function Home() {
 
     try {
       const remainingForScoring = benchmarkState.remainingQuestions
-      const newScores = await scoreAnswer(currentQuestionId, trimmed, remainingForScoring)
+      const newScores = await scoreAnswer(currentQuestionId, trimmed, remainingForScoring, sessionIdRef.current)
 
       const remainingExcludingCurrent = remainingForScoring.filter(id => id !== currentQuestionId)
       const skipped = getSkippedQuestions(remainingExcludingCurrent, newScores, currentQuestionId)
@@ -249,6 +257,19 @@ export default function Home() {
       if (!nextId) {
         setBenchmarkPhase('complete')
         setCurrentQuestionId(null)
+        fetch('/api/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'benchmark_complete',
+            sessionId: sessionIdRef.current,
+            totalScore: updatedState.totalScore,
+            maturityLabel: updatedState.maturityLabel,
+            pillarScores: updatedState.pillarScores,
+            answers: updatedState.answers,
+            scores: updatedState.scores,
+          }),
+        }).catch(() => {})
         streamAiMessage("That covers everything — let me put your results together.", () => {
           setTimeout(() => setPhase('results'), 600)
         })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { QUESTION_MAP } from '@/lib/questions'
+import { appendLog } from '@/lib/logger'
 
 export const maxDuration = 30
 
@@ -9,10 +10,11 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { currentQuestionId, answer, remainingQuestions } = body as {
+    const { currentQuestionId, answer, remainingQuestions, sessionId } = body as {
       currentQuestionId: string
       answer: string
       remainingQuestions: string[]
+      sessionId?: string
     }
 
     if (!currentQuestionId || !answer) {
@@ -87,7 +89,14 @@ Score the current question and identify if any remaining questions were also ans
       scores[currentQuestionId] = 2
     }
 
-    console.log('[score] scored questions:', JSON.stringify(scores))
+    appendLog({
+      event: 'benchmark_answer',
+      sessionId: sessionId ?? null,
+      questionId: currentQuestionId,
+      question: currentQuestionText,
+      answer,
+      scores,
+    })
 
     return NextResponse.json({ scores })
   } catch (err) {

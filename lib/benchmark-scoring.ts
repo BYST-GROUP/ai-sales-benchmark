@@ -1,12 +1,13 @@
 export async function scoreAnswer(
   currentQuestionId: string,
   answer: string,
-  remainingQuestions: string[]
+  remainingQuestions: string[],
+  sessionId?: string
 ): Promise<Record<string, number>> {
   const res = await fetch('/api/score', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ currentQuestionId, answer, remainingQuestions }),
+    body: JSON.stringify({ currentQuestionId, answer, remainingQuestions, sessionId }),
   })
   if (!res.ok) throw new Error('Scoring failed')
   const data = await res.json()

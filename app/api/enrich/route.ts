@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { inferACV, inferCustomerCount, inferGTMMotion } from '@/lib/data-enrichment-logic'
 import type { CompanyProfile } from '@/types'
+import { appendLog } from '@/lib/logger'
 
 export const maxDuration = 30
 
@@ -88,7 +89,8 @@ Rules for enrichment_message:
 - Always mention your estimate of the sales team size (e.g. "somewhere in the range of 8–12 AEs") — this is a key data point; if you are less confident, frame it as a rough estimate
 - If funding stage is known, mention it
 - Use new lines to make the message more readable
-- Style reference (do NOT copy verbatim): "From what I can see, Brevo is a B2B SaaS company targeting mid-market sales and revenue operations teams — likely with a sales-led motion and somewhere in the range of 15–25 AEs closing deals in the $15K–$40K ACV range. Am I correct, what would you add?"
+- Start the message with a natural opening phrase that references the company by name — e.g. "Here\'s what I found about [Company]" or "Here\'s what I know about [Company]" — vary it naturally, never use the same opener twice
+- Style reference (do NOT copy verbatim): "Here\'s what I found about Brevo — a B2B SaaS company targeting mid-market sales and revenue operations teams, likely running a sales-led motion with somewhere in the range of 15–25 AEs closing deals in the $15K–$40K ACV range. Does this match what you\'re seeing, and is there anything you\'d add?"
 - Adapt naturally to the specific company profile — never copy the example
 - Return only the message text in this field, no JSON, no markdown within the message`,
     messages: [
@@ -117,6 +119,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const domain: string = body?.domain?.trim()
+    const sessionId: string | null = body?.sessionId ?? null
     if (!domain) {
       return NextResponse.json({ error: 'domain is required' }, { status: 400 })
     }
@@ -154,7 +157,13 @@ export async function POST(req: NextRequest) {
       estimated_customer_count: estimatedCustomerCount,
     }
 
-    console.log('[enrich-v2] company profile:', JSON.stringify(profile, null, 2))
+    appendLog({
+      event: 'enrichment_complete',
+      sessionId,
+      domain,
+      profile,
+      enrichment_message: claudeResponse.enrichment_message,
+    })
 
     return NextResponse.json({ ...profile, enrichment_message: claudeResponse.enrichment_message })
   } catch (err) {
