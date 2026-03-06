@@ -777,7 +777,7 @@ export default function Home() {
                 Book a free 30-minute call. We&apos;ll walk you through exactly what AI-native companies at your stage are doing — and what it would take to get there.
               </p>
               <a
-                href="https://calendly.com/byst-group/ai-sales-benchmark"
+                href="https://calendly.com/iamruiteles/teles-intro-call"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-2 rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors"
