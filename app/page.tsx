@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { QUESTIONS, QUESTION_MAP } from '@/lib/questions'
+import { BenchmarkState, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
+import { scoreAnswer, getSkippedQuestions } from '@/lib/benchmark-scoring'
 
-type Phase = 'hero' | 'chat'
+type Phase = 'hero' | 'chat' | 'results'
 
 interface Message {
   role: 'ai' | 'user'
@@ -25,6 +28,13 @@ export default function Home() {
   const [showOptions, setShowOptions] = useState(false)
   const [correction, setCorrection] = useState('')
   const [showFinalTyping, setShowFinalTyping] = useState(false)
+
+  // Benchmark state
+  const [benchmarkState, setBenchmarkState] = useState<BenchmarkState>(createInitialBenchmarkState())
+  const [benchmarkPhase, setBenchmarkPhase] = useState<'idle' | 'questioning' | 'complete'>('idle')
+  const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(null)
+  const [isBenchmarkLoading, setIsBenchmarkLoading] = useState(false)
+  const [benchmarkInput, setBenchmarkInput] = useState('')
 
   const submittedDomain = useRef('')
   const chatBottomRef = useRef<HTMLDivElement>(null)
@@ -117,7 +127,7 @@ export default function Home() {
   // Scroll to bottom whenever chat updates
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping, showOptions, showFinalTyping])
+  }, [messages, isTyping, showOptions, showFinalTyping, isBenchmarkLoading])
 
   function handleLooksGood() {
     setMessages(prev => [...prev, { role: 'user', content: 'Looks good ✓' }])
@@ -135,6 +145,65 @@ export default function Home() {
     setShowFinalTyping(true)
   }
 
+  // When "Great, let's begin..." animation ends, fire Q1
+  useEffect(() => {
+    if (!showFinalTyping) return
+    const t = setTimeout(() => {
+      setShowFinalTyping(false)
+      setMessages(prev => [...prev, { role: 'ai', content: QUESTIONS[0].text }])
+      setCurrentQuestionId('Q1')
+      setBenchmarkPhase('questioning')
+    }, 1800)
+    return () => clearTimeout(t)
+  }, [showFinalTyping])
+
+  async function handleBenchmarkAnswer(e?: React.FormEvent) {
+    e?.preventDefault()
+    const trimmed = benchmarkInput.trim()
+    if (!trimmed || !currentQuestionId || isBenchmarkLoading) return
+
+    setMessages(prev => [...prev, { role: 'user', content: trimmed }])
+    setBenchmarkInput('')
+    setIsBenchmarkLoading(true)
+
+    try {
+      const remainingForScoring = benchmarkState.remainingQuestions
+      const newScores = await scoreAnswer(currentQuestionId, trimmed, remainingForScoring)
+
+      const remainingExcludingCurrent = remainingForScoring.filter(id => id !== currentQuestionId)
+      const skipped = getSkippedQuestions(remainingExcludingCurrent, newScores, currentQuestionId)
+
+      const updatedState = applyScores(benchmarkState, trimmed, currentQuestionId, newScores)
+      setBenchmarkState(updatedState)
+
+      const nextId = updatedState.remainingQuestions[0] ?? null
+
+      if (!nextId) {
+        setBenchmarkPhase('complete')
+        setCurrentQuestionId(null)
+        setMessages(prev => [...prev, {
+          role: 'ai',
+          content: "That covers everything — let me put your results together.",
+        }])
+        setTimeout(() => setPhase('results'), 1800)
+      } else {
+        const nextQuestion = QUESTION_MAP[nextId]
+        const aiMessage = skipped.length > 0
+          ? `Got it — that covers a few things.\n\n${nextQuestion.text}`
+          : nextQuestion.text
+        setMessages(prev => [...prev, { role: 'ai', content: aiMessage }])
+        setCurrentQuestionId(nextId)
+      }
+    } catch {
+      setMessages(prev => [...prev, {
+        role: 'ai',
+        content: "Something went wrong on my end — could you repeat that?",
+      }])
+    } finally {
+      setIsBenchmarkLoading(false)
+    }
+  }
+
   const currentStatus = STATUSES[statusIndex]?.(submittedDomain.current) ?? ''
 
   return (
@@ -143,7 +212,7 @@ export default function Home() {
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
       <div
         className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${
-          phase === 'chat' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          phase !== 'hero' ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
         {/* Fixed BYST wordmark — hero only */}
@@ -223,7 +292,7 @@ export default function Home() {
       {/* ── Chat ──────────────────────────────────────────────────────────────── */}
       <div
         className={`absolute inset-0 flex flex-col font-sans transition-opacity duration-500 ${
-          phase === 'hero' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          phase === 'hero' || phase === 'results' ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
         {/* Header */}
@@ -265,6 +334,8 @@ export default function Home() {
               </div>
             )}
 
+            {isBenchmarkLoading && <AiTypingBubble />}
+
             <div ref={chatBottomRef} />
           </div>
         </div>
@@ -292,7 +363,6 @@ export default function Home() {
                 {/* Row 2 — Something else (inline input) */}
                 <form onSubmit={handleCorrection} className="flex items-center gap-4 px-4 py-3.5">
                   <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center">
-                    {/* Pencil icon */}
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-3 h-3 fill-muted-foreground">
                       <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                     </svg>
@@ -318,6 +388,28 @@ export default function Home() {
                 </form>
 
               </div>
+            ) : benchmarkPhase === 'questioning' && !isBenchmarkLoading ? (
+              /* Benchmark free-text answer input */
+              <form onSubmit={handleBenchmarkAnswer} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
+                <input
+                  type="text"
+                  placeholder="Your answer..."
+                  value={benchmarkInput}
+                  onChange={e => setBenchmarkInput(e.target.value)}
+                  className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={!benchmarkInput.trim()}
+                  aria-label="Send answer"
+                  className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
+                </button>
+              </form>
             ) : !showOptions && !isTyping && messages.length > 0 && messages[messages.length - 1].role === 'ai' && messages[messages.length - 1].content.startsWith("I couldn't find") ? (
               /* Fallback free-text input */
               <form onSubmit={handleCorrection} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
@@ -351,6 +443,73 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+          </div>
+        </div>
+      </div>
+
+      {/* ── Results ───────────────────────────────────────────────────────────── */}
+      <div
+        className={`absolute inset-0 flex flex-col font-sans transition-opacity duration-500 ${
+          phase !== 'results' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <header className="flex-shrink-0 h-14 border-b border-border flex items-center px-6">
+          <div className="flex flex-col items-start">
+            <span className="font-display font-normal text-xl tracking-[0.15em] text-white">BYST</span>
+            <span className="mt-0.5 block h-[2px] w-full bg-[#009e8f]" />
+          </div>
+          <span className="ml-auto font-sans text-sm font-normal text-white">Sales Systems Benchmark</span>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-4 py-10">
+          <div className="mx-auto max-w-2xl flex flex-col gap-8">
+
+            {/* Overall score */}
+            <div className="border border-border rounded-xl p-8 flex flex-col items-center text-center gap-3">
+              <p className="text-xs tracking-widest uppercase text-muted-foreground">Overall AI Maturity</p>
+              <div className="text-7xl font-display font-semibold text-primary">{benchmarkState.totalScore}</div>
+              <p className="text-lg font-display font-semibold text-white">{benchmarkState.maturityLabel}</p>
+              <p className="text-sm text-muted-foreground">{benchmarkState.maturityStage}</p>
+            </div>
+
+            {/* Pillar scores */}
+            <div className="grid grid-cols-3 gap-4">
+              {(
+                [
+                  { label: 'AE Systems', score: benchmarkState.pillarScores.pillar1 },
+                  { label: 'Leadership Systems', score: benchmarkState.pillarScores.pillar2 },
+                  { label: 'Enablement', score: benchmarkState.pillarScores.pillar3 },
+                ] as const
+              ).map(({ label, score }) => (
+                <div key={label} className="border border-border rounded-xl p-5 flex flex-col items-center gap-2">
+                  <p className="text-xs text-muted-foreground text-center leading-snug">{label}</p>
+                  <p className="text-3xl font-display font-semibold text-white">{score}</p>
+                  <div className="w-full h-1 rounded-full bg-border overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-700"
+                      style={{ width: `${score}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA */}
+            <div className="border border-primary/30 rounded-xl p-8 flex flex-col items-center text-center gap-4 bg-primary/5">
+              <p className="font-display font-semibold text-white text-xl">See what AI-native looks like for your team</p>
+              <p className="text-sm text-secondary-foreground max-w-md">
+                Book a free 30-minute call. We&apos;ll walk you through exactly what AI-native companies at your stage are doing — and what it would take to get there.
+              </p>
+              <a
+                href="https://calendly.com/byst-group/ai-sales-benchmark"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors"
+              >
+                Book a Call
+              </a>
+            </div>
 
           </div>
         </div>
