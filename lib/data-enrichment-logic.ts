@@ -128,7 +128,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 export async function formatEnrichmentMessage(profile: CompanyProfile): Promise<string> {
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 300,
+    max_tokens: 400,
     system: `You are a sharp B2B sales analyst presenting your research on a company to its own sales leader or founder.
 Your job is to show them what you found — confidently but humbly. You've done your homework, but you know you might have some details wrong. You want them to confirm, correct, or fill in what you missed.
 
@@ -153,7 +153,7 @@ Rules:
 - If the company serves multiple segments, pick the most dominant one
 - If the GTM motion is hybrid, default to whichever motion is most dominant — sales-led or product-led
 - End with a short, natural conversational question.
-- Use new lines to make the message more readable.
+- Structure your message using paragraphs — maximum 2 sentences per paragraph. Add a new line between each paragraph for readability.
 - Return only the message text, no JSON, no markdown`,
     messages: [
       {
