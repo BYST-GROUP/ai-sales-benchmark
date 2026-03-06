@@ -65,7 +65,7 @@ export const NEXT_STAGE_CONTENT: Record<MaturityLabel, NextStageContent | null> 
     impactStats: [
       { label: 'Admin time saved', value: '~1.5 hrs/rep/day' },
       { label: 'Selling time increase', value: '+25% per rep' },
-      { label: 'OTE attainment lift', value: '+10–15%' },
+      { label: 'OTE to Quota multiple lift', value: '+10–15%' },
       { label: 'Win rate improvement', value: '+8–12%' },
     ],
   },
@@ -78,7 +78,7 @@ export const NEXT_STAGE_CONTENT: Record<MaturityLabel, NextStageContent | null> 
     impactStats: [
       { label: 'Admin time saved', value: '~2.5 hrs/rep/day' },
       { label: 'Selling time increase', value: '+35% per rep' },
-      { label: 'OTE attainment lift', value: '+15–20%' },
+      { label: 'OTE to Quota multiple lift', value: '+15–20%' },
       { label: 'Ramp time reduction', value: '30–40% faster' },
     ],
   },
@@ -90,7 +90,7 @@ export const NEXT_STAGE_CONTENT: Record<MaturityLabel, NextStageContent | null> 
       "Teams at this stage see significantly better forecast accuracy and faster identification of underperforming reps — before the quarter is already at risk.",
     impactStats: [
       { label: 'Admin time saved', value: '~3.5 hrs/rep/day' },
-      { label: 'OTE attainment lift', value: '+20–25%' },
+      { label: 'OTE to Quota multiple lift', value: '+20–25%' },
       { label: 'Forecast accuracy', value: '+20% improvement' },
       { label: 'Win rate improvement', value: '+18–25%' },
     ],
@@ -104,7 +104,7 @@ export const NEXT_STAGE_CONTENT: Record<MaturityLabel, NextStageContent | null> 
     impactStats: [
       { label: 'Admin time saved', value: '4+ hrs/rep/day' },
       { label: 'Pipeline capacity', value: '2× per rep' },
-      { label: 'OTE attainment lift', value: '+35–40%' },
+      { label: 'OTE to Quota multiple lift', value: '+35–40%' },
       { label: 'Win rate improvement', value: '+30%+' },
     ],
   },
