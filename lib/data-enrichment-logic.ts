@@ -71,7 +71,7 @@ export function inferGTMMotion(hasFreePlan: boolean, estimatedACV: number): 'PLG
   if (hasFreePlan) {
     return estimatedACV < 15000 ? 'PLG' : 'SLG'
   } else {
-    return estimatedACV < 10000 ? 'PLG' : 'SLG'
+    return estimatedACV <= 10000 ? 'PLG' : 'SLG'
   }
 }
 
