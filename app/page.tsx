@@ -422,13 +422,8 @@ export default function Home() {
 
             {/* Heading */}
             <h2 className="mt-6 font-display text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-              20 Minutes. Your AI Sales Systems Competitive Advantage.
+              Your AI Sales Systems as a Competitive Advantage
             </h2>
-
-            {/* Supporting text */}
-            <p className="mt-4 max-w-2xl text-sm md:text-base text-secondary-foreground leading-relaxed">
-              AI is rapidly becoming the biggest leverage in revenue teams. This benchmark shows whether your sales organization is ahead or falling behind.
-            </p>
 
             {/* Cards grid */}
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -465,7 +460,7 @@ export default function Home() {
               <div className="border border-border rounded-xl p-6 md:p-8 bg-card flex flex-col">
                 <p className="text-xs tracking-widest uppercase text-muted-foreground">02</p>
                 <h3 className="mt-3 font-display text-xl font-semibold text-white leading-snug">
-                  Understand the Impact — Understand the Opportunity
+                  Measure the Opportunity
                 </h3>
                 <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
                   Your Sales Systems will become a competitive advantage.
@@ -557,7 +552,7 @@ export default function Home() {
                 Benchmark Your AI Sales Systems
               </button>
               <p className="text-xs text-muted-foreground tracking-wide">
-                ⏱ Takes 20 minutes • No preparation required
+                ⏱ Takes 6–10 minutes • No preparation required
               </p>
             </div>
 
