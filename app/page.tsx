@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ACTIVE_QUESTIONS, ACTIVE_QUESTION_IDS, QUESTION_MAP } from '@/lib/questions'
 import { BenchmarkState, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
 import { scoreAnswer, getSkippedQuestions } from '@/lib/benchmark-scoring'
 import { MaturityLabel, CURRENT_STAGE_CONTENT, NEXT_STAGE_CONTENT } from '@/lib/results-content'
 import MaturityCurveChart from '@/components/MaturityCurveChart'
+import { domainFromSlug, slugFromDomain } from '@/lib/slug'
 
 type Phase = 'hero' | 'chat' | 'results'
 
@@ -24,9 +26,27 @@ const STATUSES = [
 const INTRO_MESSAGE =
   "Awesome! Let me ask a few questions about your sales operations so we can assess your maturity level with AI sales systems."
 
+// Suspense wrapper required because HomeContent uses useSearchParams
 export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  )
+}
+
+function HomeContent() {
+  // ── Routing: read URL params injected by middleware ──────────────────────────
+  const searchParams = useSearchParams()
+  const companyParam  = searchParams.get('company')   // e.g. "hubspot.com"
+  const sessionParam  = searchParams.get('session')   // UUID for results deep link
+  const startParam    = searchParams.get('start')     // "1" → auto-start benchmark
+
+  // Pre-fill domain from URL slug if provided
+  const initialDomain = companyParam ? domainFromSlug(companyParam) : ''
+
   const [phase, setPhase] = useState<Phase>('hero')
-  const [domain, setDomain] = useState('')
+  const [domain, setDomain] = useState(initialDomain)
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [statusIndex, setStatusIndex] = useState(0)
@@ -62,6 +82,7 @@ export default function Home() {
   const statusTimers = useRef<ReturnType<typeof setTimeout>[]>([])
   const resolvedMessage = useRef<string | null>(null)
   const apiDone = useRef(false)
+  const didAutoStart = useRef(false)
 
   // Cleanup on unmount
   useEffect(() => {
@@ -69,6 +90,42 @@ export default function Home() {
       if (streamIntervalRef.current) clearInterval(streamIntervalRef.current)
       recognitionRef.current?.stop()
     }
+  }, [])
+
+  // ── Auto-start benchmark when arriving via /benchmark/company/[slug] ─────────
+  useEffect(() => {
+    if (startParam !== '1' || !initialDomain || didAutoStart.current) return
+    didAutoStart.current = true
+    const d = initialDomain
+    submittedDomain.current = d
+    sessionIdRef.current = crypto.randomUUID()
+    resolvedMessage.current = null
+    apiDone.current = false
+    setPhase('chat')
+    setIsTyping(true)
+    setStatusIndex(0)
+    fetch('/api/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'domain_submit', sessionId: sessionIdRef.current, domain: d }),
+    }).catch(() => {})
+    runEnrichment(d)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Load results from DB when arriving via /benchmark/session/[sessionId] ────
+  useEffect(() => {
+    if (!sessionParam) return
+    fetch(`/api/session/${sessionParam}`)
+      .then(r => r.json())
+      .then((d: { benchmarkState?: BenchmarkState }) => {
+        if (d.benchmarkState) {
+          setBenchmarkState(d.benchmarkState)
+          setPhase('results')
+        }
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Auto-resize textarea when value changes (e.g. via voice input)
@@ -155,7 +212,7 @@ export default function Home() {
     setPhase('chat')
     setIsTyping(true)
     setStatusIndex(0)
-    window.history.pushState({}, '', '/benchmark')
+    window.history.replaceState({}, '', `/benchmark/company/${slugFromDomain(trimmed)}`)
     // Fire-and-forget: log domain submission
     fetch('/api/log', {
       method: 'POST',
@@ -302,6 +359,7 @@ export default function Home() {
           }),
         }).catch(() => {})
         streamAiMessage("That covers everything — let me put your results together.", () => {
+          window.history.pushState({}, '', `/benchmark/session/${sessionIdRef.current}`)
           setTimeout(() => setPhase('results'), 600)
         })
       } else {
