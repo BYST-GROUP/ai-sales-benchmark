@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { inferACV, inferCustomerCount, inferGTMMotion } from '@/lib/data-enrichment-logic'
 import type { CompanyProfile } from '@/types'
 import { appendLog } from '@/lib/logger'
 import { getCachedEnrichment, setCachedEnrichment } from '@/lib/enrichment-cache'
+import { getLLMClient, OPENAI_PROMPT_IDS, type LLMUsage } from '@/lib/llm'
 
 export const maxDuration = 30
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-interface ClaudeV2Response {
+interface EnrichLLMResponse {
   display_name: string
   product_type: string
   gtm_motion: 'PLG' | 'SLG'
@@ -47,13 +45,15 @@ function formatAERange(count: number): string {
   return `${low}–${high}`
 }
 
-let lastEnrichTokenUsage: { input_tokens: number; output_tokens: number } | null = null
+async function runEnrichLLM(
+  domain: string,
+  websiteText: string,
+): Promise<{ data: EnrichLLMResponse; usage?: LLMUsage }> {
+  const llm = getLLMClient()
 
-async function callClaudeV2(domain: string, websiteText: string): Promise<ClaudeV2Response> {
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system: `You are a sharp B2B sales analyst. Given a company domain and website content, extract company information and return ONLY a valid JSON object with no preamble or markdown.
+  const { text, usage } = await llm.complete({
+    promptId: OPENAI_PROMPT_IDS.enrich,
+    systemPrompt: `You are a sharp B2B sales analyst. Given a company domain and website content, extract company information and return ONLY a valid JSON object with no preamble or markdown.
 
 JSON schema:
 {
@@ -84,6 +84,7 @@ Rules for structured fields:
 - has_free_plan: true if the company offers a permanent free tier (not just a trial)
 
 Rules for enrichment_message:
+- Start by explaining that you gathered information regarding [Company Name] so that you can benchmark it agains similar companies
 - Write a natural, conversational 2-3 sentence summary
 - Use "you" and "your" throughout — never "they" or "their"
 - Present findings as informed research, not facts set in stone
@@ -92,31 +93,28 @@ Rules for enrichment_message:
 - Always mention your estimate of the sales team size (e.g. "somewhere in the range of 8–12 AEs") — this is a key data point; if you are less confident, frame it as a rough estimate
 - If funding stage is known, mention it
 - Use new lines to make the message more readable
-- Start the message with a natural opening phrase that references the company by name — e.g. "Here\'s what I found about [Company]" or "Here\'s what I know about [Company]" — vary it naturally, never use the same opener twice
-- Style reference (do NOT copy verbatim): "Here\'s what I found about Brevo — a B2B SaaS company targeting mid-market sales and revenue operations teams, likely running a sales-led motion with somewhere in the range of 15–25 AEs closing deals in the $15K–$40K ACV range. Does this match what you\'re seeing, and is there anything you\'d add?"
-- Adapt naturally to the specific company profile — never copy the example
+- Adapt naturally to the specific company profile
+- The message needs to be straight to the point, easy to ready. Use bullet points. Use paragraphs or new lines for easier comprehension.
 - Return only the message text in this field, no JSON, no markdown within the message`,
-    messages: [
-      {
-        role: 'user',
-        content: `Domain: ${domain}\n\nWebsite content:\n${websiteText || 'No website content available.'}`,
-      },
-    ],
+    userMessage: `Domain: ${domain}\n\nWebsite content:\n${websiteText || 'No website content available.'}`,
+    maxTokens: 1024,
   })
 
-  lastEnrichTokenUsage = message.usage
-  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  let data: EnrichLLMResponse
   try {
-    return JSON.parse(text) as ClaudeV2Response
+    data = JSON.parse(text) as EnrichLLMResponse
   } catch {
     const match = text.match(/\{[\s\S]*\}/)
     if (match) {
       try {
-        return JSON.parse(match[0]) as ClaudeV2Response
+        data = JSON.parse(match[0]) as EnrichLLMResponse
+        return { data, usage }
       } catch { /* ignore */ }
     }
-    throw new Error('Failed to parse Claude response as JSON')
+    throw new Error('Failed to parse LLM response as JSON')
   }
+
+  return { data, usage }
 }
 
 export async function POST(req: NextRequest) {
@@ -128,7 +126,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'domain is required' }, { status: 400 })
     }
 
-    // Step 1: Check cache — skip Claude entirely if fresh data exists (< 6 months old)
+    // Step 1: Check cache — skip LLM entirely if fresh data exists (< 6 months old)
     const cached = await getCachedEnrichment(domain)
     if (cached) {
       await appendLog({ event: 'enrich_cache_hit', sessionId, domain })
@@ -138,31 +136,30 @@ export async function POST(req: NextRequest) {
     // Step 2: Fetch website text
     const websiteText = await fetchWebsiteText(domain)
 
-    // Step 3: Single Claude call — infers all company data + generates enrichment message
-    lastEnrichTokenUsage = null
-    const claudeResponse = await callClaudeV2(domain, websiteText)
+    // Step 3: Single LLM call — infers all company data + generates enrichment message
+    const { data: enrichResult, usage: tokenUsage } = await runEnrichLLM(domain, websiteText)
 
-    // Step 4: Build CompanyProfile using Claude data + business logic
-    const customerSegment = claudeResponse.customer_segment ?? 'Mid-Market'
-    const hasFreePlan = claudeResponse.has_free_plan ?? false
-    const estimatedACV = claudeResponse.estimated_acv ?? inferACV(claudeResponse.yearly_revenue, null, customerSegment)
-    const estimatedCustomerCount = inferCustomerCount(claudeResponse.yearly_revenue, estimatedACV)
+    // Step 4: Build CompanyProfile using LLM data + business logic
+    const customerSegment = enrichResult.customer_segment ?? 'Mid-Market'
+    const hasFreePlan = enrichResult.has_free_plan ?? false
+    const estimatedACV = enrichResult.estimated_acv ?? inferACV(enrichResult.yearly_revenue, null, customerSegment)
+    const estimatedCustomerCount = inferCustomerCount(enrichResult.yearly_revenue, estimatedACV)
     const gtmMotion = inferGTMMotion(hasFreePlan, estimatedACV)
-    const estimatedAECount = claudeResponse.sales_people_count
-      ? formatAERange(claudeResponse.sales_people_count)
+    const estimatedAECount = enrichResult.sales_people_count
+      ? formatAERange(enrichResult.sales_people_count)
       : '—'
 
     const profile: CompanyProfile = {
-      display_name: claudeResponse.display_name ?? domain,
-      industry: claudeResponse.product_type ?? 'Unknown',
+      display_name: enrichResult.display_name ?? domain,
+      industry: enrichResult.product_type ?? 'Unknown',
       location: 'Unknown',
       employee_count: null,
-      funding_stage: claudeResponse.funding_stage ?? null,
+      funding_stage: enrichResult.funding_stage ?? null,
       total_funding_raised: null,
       has_free_plan: hasFreePlan,
-      product_type: claudeResponse.product_type ?? 'SaaS',
+      product_type: enrichResult.product_type ?? 'SaaS',
       gtm_motion: gtmMotion,
-      buyer_persona: claudeResponse.buyer_persona ?? 'Unknown',
+      buyer_persona: enrichResult.buyer_persona ?? 'Unknown',
       customer_segment: customerSegment,
       estimated_acv: estimatedACV,
       estimated_ae_count: estimatedAECount,
@@ -170,22 +167,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 5: Save to cache for future requests
-    await setCachedEnrichment(domain, profile, claudeResponse.enrichment_message)
+    await setCachedEnrichment(domain, profile, enrichResult.enrichment_message)
 
     await appendLog({
       event: 'enrich_tokens',
       sessionId,
       domain,
-      token_usage: lastEnrichTokenUsage,
+      token_usage: tokenUsage ?? null,
     })
 
-    return NextResponse.json({ ...profile, enrichment_message: claudeResponse.enrichment_message })
+    return NextResponse.json({ ...profile, enrichment_message: enrichResult.enrichment_message })
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)
-    console.error('[enrich-v2] error:', err)
+    console.error('[enrich] error:', err)
     return NextResponse.json(
       { error: 'The benchmark is unavailable at the moment. Please try again later.', _debug: detail },
-      { status: 503 }
+      { status: 503 },
     )
   }
 }

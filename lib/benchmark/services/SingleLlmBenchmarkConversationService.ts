@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { BenchmarkConversationService, BenchmarkTurnInput, BenchmarkTurnOutput } from '@/lib/benchmark/types'
 import { SINGLE_LLM_SYSTEM_PROMPT, buildSingleLlmUserMessage } from '@/lib/benchmark/prompts/singleLlmPrompt'
 import { appendLog } from '@/lib/logger'
 import { QUESTION_MAP } from '@/lib/questions'
+import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
 
 interface SingleLlmResponse {
   scores: Record<string, number>
@@ -17,19 +17,14 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
   async processAnswer(input: BenchmarkTurnInput): Promise<BenchmarkTurnOutput> {
     const { currentQuestionId, sessionId, answer } = input
 
-    // Instantiate at request-time so env vars are guaranteed to be loaded
-    const anthropic = new Anthropic()
-
     const userMessage = buildSingleLlmUserMessage(input)
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 512,
-      system: SINGLE_LLM_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+    const { text, usage } = await getLLMClient().complete({
+      systemPrompt: SINGLE_LLM_SYSTEM_PROMPT,
+      promptId: OPENAI_PROMPT_IDS.singleLlm,
+      userMessage,
+      maxTokens: 512,
     })
-
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
 
     let parsed: SingleLlmResponse | null = null
     try {
@@ -68,7 +63,7 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       answer,
       scores,
       next_question_id: parsed?.next_question_id ?? null,
-      token_usage: message.usage,
+      token_usage: usage ?? null,
     })
 
     return {

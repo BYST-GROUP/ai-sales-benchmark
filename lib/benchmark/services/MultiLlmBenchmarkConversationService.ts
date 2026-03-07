@@ -1,26 +1,21 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { BenchmarkConversationService, BenchmarkTurnInput, BenchmarkTurnOutput } from '@/lib/benchmark/types'
 import { SCORING_SYSTEM_PROMPT, buildScoringUserMessage } from '@/lib/benchmark/prompts/multiLlmPrompts'
 import { appendLog } from '@/lib/logger'
 import { QUESTION_MAP } from '@/lib/questions'
+import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
 
 export class MultiLlmBenchmarkConversationService implements BenchmarkConversationService {
   async processAnswer(input: BenchmarkTurnInput): Promise<BenchmarkTurnOutput> {
     const { currentQuestionId, answer, remainingQuestions, sessionId } = input
 
-    // Instantiate at request-time so env vars are guaranteed to be loaded
-    const anthropic = new Anthropic()
-
     const userMessage = buildScoringUserMessage(currentQuestionId, answer, remainingQuestions)
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 256,
-      system: SCORING_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+    const { text, usage } = await getLLMClient().complete({
+      systemPrompt: SCORING_SYSTEM_PROMPT,
+      promptId: OPENAI_PROMPT_IDS.multiLlm,
+      userMessage,
+      maxTokens: 256,
     })
-
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
 
     let scores: Record<string, number> = {}
     try {
@@ -49,7 +44,7 @@ export class MultiLlmBenchmarkConversationService implements BenchmarkConversati
       question: currentQuestionText,
       answer,
       scores,
-      token_usage: message.usage,
+      token_usage: usage ?? null,
     })
 
     return { scores }
