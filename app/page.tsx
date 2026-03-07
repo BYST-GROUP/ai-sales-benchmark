@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { QUESTIONS, QUESTION_MAP } from '@/lib/questions'
+import { ACTIVE_QUESTIONS, ACTIVE_QUESTION_IDS, QUESTION_MAP } from '@/lib/questions'
 import { BenchmarkState, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
 import { scoreAnswer, getSkippedQuestions } from '@/lib/benchmark-scoring'
 import { MaturityLabel, CURRENT_STAGE_CONTENT, NEXT_STAGE_CONTENT } from '@/lib/results-content'
@@ -257,8 +257,8 @@ export default function Home() {
     const t = setTimeout(() => {
       setShowFinalTyping(false)
       streamAiMessage(INTRO_MESSAGE, () => {
-        streamAiMessage(QUESTIONS[0].text, () => {
-          setCurrentQuestionId('Q1')
+        streamAiMessage(ACTIVE_QUESTIONS[0].text, () => {
+          setCurrentQuestionId(ACTIVE_QUESTIONS[0].id)
           setBenchmarkPhase('questioning')
         })
       })
@@ -440,6 +440,18 @@ export default function Home() {
             <span className="font-sans text-sm font-normal text-white">Sales Systems Benchmark</span>
           </div>
         </header>
+
+        {/* Progress bar */}
+        {benchmarkPhase !== 'idle' && (() => {
+          const total = ACTIVE_QUESTION_IDS.length
+          const answered = total - benchmarkState.remainingQuestions.length
+          const pct = benchmarkPhase === 'complete' ? 100 : Math.round((answered / total) * 100)
+          return (
+            <div className="flex-shrink-0 h-[2px] w-full bg-border">
+              <div className="h-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
+            </div>
+          )
+        })()}
 
         {/* Scrollable messages */}
         <div className="chat-scroll flex-1 overflow-y-auto px-4 py-8">

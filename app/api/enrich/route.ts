@@ -47,6 +47,8 @@ function formatAERange(count: number): string {
   return `${low}–${high}`
 }
 
+let lastEnrichTokenUsage: { input_tokens: number; output_tokens: number } | null = null
+
 async function callClaudeV2(domain: string, websiteText: string): Promise<ClaudeV2Response> {
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
@@ -102,6 +104,7 @@ Rules for enrichment_message:
     ],
   })
 
+  lastEnrichTokenUsage = message.usage
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
   try {
     return JSON.parse(text) as ClaudeV2Response
@@ -129,6 +132,7 @@ export async function POST(req: NextRequest) {
     const websiteText = await fetchWebsiteText(domain)
  
     // Step 2: Single Claude call — infers all company data + generates enrichment message
+    lastEnrichTokenUsage = null
     const claudeResponse = await callClaudeV2(domain, websiteText)
  
     // Step 3: Build CompanyProfile using Claude data + business logic
@@ -157,6 +161,13 @@ export async function POST(req: NextRequest) {
       estimated_ae_count: estimatedAECount,
       estimated_customer_count: estimatedCustomerCount,
     }
+
+    appendLog({
+      event: 'enrich_tokens',
+      sessionId,
+      domain,
+      token_usage: lastEnrichTokenUsage,
+    })
 
     return NextResponse.json({ ...profile, enrichment_message: claudeResponse.enrichment_message })
   } catch (err) {

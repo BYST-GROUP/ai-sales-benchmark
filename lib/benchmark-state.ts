@@ -1,4 +1,4 @@
-import { ALL_QUESTION_IDS } from './questions'
+import { ACTIVE_QUESTION_IDS, ALL_QUESTION_IDS } from './questions'
 
 export interface BenchmarkState {
   answers: Record<string, string>
@@ -18,7 +18,7 @@ export function createInitialBenchmarkState(): BenchmarkState {
   return {
     answers: {},
     scores: {},
-    remainingQuestions: [...ALL_QUESTION_IDS],
+    remainingQuestions: [...ACTIVE_QUESTION_IDS],
     pillarScores: { pillar1: 0, pillar2: 0, pillar3: 0 },
     totalScore: 0,
     maturityLabel: '',
@@ -50,18 +50,18 @@ export function applyScores(
 ): BenchmarkState {
   const updatedAnswers = { ...state.answers, [currentQuestionId]: answer }
 
-  // Only accept scores for known question IDs
+  // Only accept scores for active question IDs
   const validNewScores = Object.fromEntries(
-    Object.entries(newScores).filter(([id]) => ALL_QUESTION_IDS.includes(id))
+    Object.entries(newScores).filter(([id]) => ACTIVE_QUESTION_IDS.includes(id))
   )
   const updatedScores = { ...state.scores, ...validNewScores }
 
   const answeredIds = new Set(Object.keys(updatedScores))
-  const remaining = ALL_QUESTION_IDS.filter(id => !answeredIds.has(id))
+  const remaining = ACTIVE_QUESTION_IDS.filter(id => !answeredIds.has(id))
 
-  const pillar1 = normalisePillar(updatedScores, ['Q1', 'Q2', 'Q3', 'Q5'])
-  const pillar2 = normalisePillar(updatedScores, ['Q6', 'Q7', 'Q8'])
-  const pillar3 = normalisePillar(updatedScores, ['Q9', 'Q10'])
+  const pillar1 = normalisePillar(updatedScores, ['Q1', 'Q2', 'Q5'])
+  const pillar2 = normalisePillar(updatedScores, ['Q6', 'Q8'])
+  const pillar3 = normalisePillar(updatedScores, ['Q10'])
   const totalScore = Math.round((pillar1 + pillar2 + pillar3) / 3)
   const { label, stage } = getMaturity(totalScore)
 
