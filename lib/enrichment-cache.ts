@@ -15,8 +15,10 @@ import type { CompanyProfile } from '@/types'
 const SIX_MONTHS_MS      = 6 * 30 * 24 * 60 * 60 * 1000
 const SIX_MONTHS_SECONDS = 6 * 30 * 24 * 60 * 60
 
-// Use Upstash Redis in production (Vercel injects these when Upstash is connected)
-const USE_KV = !!process.env.UPSTASH_REDIS_REST_URL
+// Use Upstash Redis when env vars are present (Vercel injects these when Upstash is connected)
+const USE_KV   = !!process.env.UPSTASH_REDIS_REST_URL
+// Only use the local file cache when NOT running on Vercel (filesystem is read-only there)
+const USE_FILE = !process.env.VERCEL && !USE_KV
 
 export interface CacheEntry {
   cachedAt: string
@@ -44,9 +46,13 @@ function readFileStore(): FileStore {
 }
 
 function writeFileStore(store: FileStore): void {
-  const dir = path.dirname(CACHE_FILE)
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  fs.writeFileSync(CACHE_FILE, JSON.stringify(store, null, 2))
+  try {
+    const dir = path.dirname(CACHE_FILE)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(store, null, 2))
+  } catch (err) {
+    console.warn('[enrichment-cache] Could not write file cache:', err)
+  }
 }
 
 function fileGet(key: string): CacheEntry | null {
@@ -90,9 +96,10 @@ async function kvSet(key: string, entry: CacheEntry): Promise<void> {
  * Returns null on a miss or when the entry is stale.
  */
 export async function getCachedEnrichment(domain: string): Promise<CacheEntry | null> {
-  const key = `enrich:${normalizeDomain(domain)}`
-  if (USE_KV) return kvGet(key)
-  return fileGet(key.replace('enrich:', ''))
+  const key = normalizeDomain(domain)
+  if (USE_KV)   return kvGet(`enrich:${key}`)
+  if (USE_FILE) return fileGet(key)
+  return null // no cache backend available (Vercel without Upstash)
 }
 
 /**
@@ -109,9 +116,8 @@ export async function setCachedEnrichment(
     enrichment_message,
   }
   const key = normalizeDomain(domain)
-  if (USE_KV) {
-    await kvSet(`enrich:${key}`, entry)
-  } else {
-    fileSet(key, entry)
-  }
+  if (USE_KV)   { await kvSet(`enrich:${key}`, entry); return }
+  if (USE_FILE) { fileSet(key, entry); return }
+  // no cache backend — skip silently (app still works, just won't cache)
+  console.warn('[enrichment-cache] No cache backend available — set UPSTASH_REDIS_REST_URL to enable caching in production')
 }
