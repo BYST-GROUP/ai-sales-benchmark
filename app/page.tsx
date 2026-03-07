@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import { ACTIVE_QUESTIONS, ACTIVE_QUESTION_IDS, QUESTION_MAP } from '@/lib/questions'
 import { BenchmarkState, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
 import { scoreAnswer, getSkippedQuestions } from '@/lib/benchmark-scoring'
@@ -26,21 +26,26 @@ const STATUSES = [
 const INTRO_MESSAGE =
   "Awesome! Let me ask a few questions about your sales operations so we can assess your maturity level with AI sales systems."
 
-// Suspense wrapper required because HomeContent uses useSearchParams
+// No Suspense wrapper needed — usePathname() doesn't require it
 export default function Home() {
-  return (
-    <Suspense fallback={null}>
-      <HomeContent />
-    </Suspense>
-  )
+  return <HomeContent />
 }
 
 function HomeContent() {
-  // ── Routing: read URL params injected by middleware ──────────────────────────
-  const searchParams = useSearchParams()
-  const companyParam  = searchParams.get('company')   // e.g. "hubspot.com"
-  const sessionParam  = searchParams.get('session')   // UUID for results deep link
-  const startParam    = searchParams.get('start')     // "1" → auto-start benchmark
+  // ── Routing: parse route directly from browser URL (useSearchParams cannot
+  //    see query params injected by server-side middleware rewrites) ────────────
+  const pathname = usePathname()
+
+  const sessionMatch          = pathname.match(/^\/benchmark\/session\/([^/]+)$/)
+  const companyBenchmarkMatch = pathname.match(/^\/benchmark\/company\/([^/]+)$/)
+  const companyLandingMatch   = (!sessionMatch && !companyBenchmarkMatch)
+    ? pathname.match(/^\/([^/]+)$/)
+    : null
+
+  const sessionParam  = sessionMatch?.[1] ?? null
+  const companyParam  = companyBenchmarkMatch?.[1]
+    ?? (companyLandingMatch && companyLandingMatch[1] !== 'benchmark' ? companyLandingMatch[1] : null)
+  const startParam    = companyBenchmarkMatch ? '1' : null
 
   // Pre-fill domain from URL slug if provided
   const initialDomain = companyParam ? domainFromSlug(companyParam) : ''
