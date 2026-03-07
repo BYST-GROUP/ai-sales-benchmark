@@ -97,7 +97,7 @@ Rules for enrichment_message:
 - The message needs to be straight to the point, easy to ready. Use bullet points. Use paragraphs or new lines for easier comprehension.
 - Return only the message text in this field, no JSON, no markdown within the message`,
     userMessage: `Domain: ${domain}\n\nWebsite content:\n${websiteText || 'No website content available.'}`,
-    maxTokens: 1024,
+    maxTokens: 4096, // reasoning models use tokens for thinking before generating output
   })
 
   let data: EnrichLLMResponse
@@ -111,7 +111,7 @@ Rules for enrichment_message:
         return { data, usage }
       } catch { /* ignore */ }
     }
-    throw new Error('Failed to parse LLM response as JSON')
+    throw new Error(`Failed to parse LLM response as JSON. Raw text (first 200 chars): ${text.slice(0, 200)}`)
   }
 
   return { data, usage }
