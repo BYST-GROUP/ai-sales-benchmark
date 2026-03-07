@@ -1,28 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { QUESTION_MAP } from '@/lib/questions'
-import { appendLog } from '@/lib/logger'
+import { BenchmarkConversationService, BenchmarkTurnInput, BenchmarkTurnOutput } from '@/lib/benchmark/types'
 import { SCORING_SYSTEM_PROMPT, buildScoringUserMessage } from '@/lib/benchmark/prompts/multiLlmPrompts'
+import { appendLog } from '@/lib/logger'
+import { QUESTION_MAP } from '@/lib/questions'
 
-export const maxDuration = 30
+export class MultiLlmBenchmarkConversationService implements BenchmarkConversationService {
+  async processAnswer(input: BenchmarkTurnInput): Promise<BenchmarkTurnOutput> {
+    const { currentQuestionId, answer, remainingQuestions, sessionId } = input
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    // Instantiate at request-time so env vars are guaranteed to be loaded
+    const anthropic = new Anthropic()
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const { currentQuestionId, answer, remainingQuestions, sessionId } = body as {
-      currentQuestionId: string
-      answer: string
-      remainingQuestions: string[]
-      sessionId?: string
-    }
-
-    if (!currentQuestionId || !answer) {
-      return NextResponse.json({ error: 'currentQuestionId and answer are required' }, { status: 400 })
-    }
-
-    const userMessage = buildScoringUserMessage(currentQuestionId, answer, remainingQuestions ?? [])
+    const userMessage = buildScoringUserMessage(currentQuestionId, answer, remainingQuestions)
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
@@ -54,6 +43,7 @@ export async function POST(req: NextRequest) {
 
     await appendLog({
       event: 'benchmark_answer',
+      mode: 'multi',
       sessionId: sessionId ?? null,
       questionId: currentQuestionId,
       question: currentQuestionText,
@@ -62,10 +52,6 @@ export async function POST(req: NextRequest) {
       token_usage: message.usage,
     })
 
-    return NextResponse.json({ scores })
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err)
-    console.error('[score] error:', err)
-    return NextResponse.json({ error: 'Scoring failed', _debug: detail }, { status: 503 })
+    return { scores }
   }
 }

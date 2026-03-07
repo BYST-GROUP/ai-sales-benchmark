@@ -1,3 +1,5 @@
+import type { BenchmarkTurnInput, BenchmarkTurnOutput } from '@/lib/benchmark/types'
+
 export async function scoreAnswer(
   currentQuestionId: string,
   answer: string,
@@ -12,6 +14,23 @@ export async function scoreAnswer(
   if (!res.ok) throw new Error('Scoring failed')
   const data = await res.json()
   return (data.scores ?? {}) as Record<string, number>
+}
+
+/**
+ * Unified benchmark turn — calls /api/benchmark-turn which dispatches to
+ * either MultiLlmBenchmarkConversationService or SingleLlmBenchmarkConversationService
+ * depending on the server-side BENCHMARK_LLM_MODE env variable.
+ */
+export async function processBenchmarkTurn(
+  input: BenchmarkTurnInput
+): Promise<BenchmarkTurnOutput> {
+  const res = await fetch('/api/benchmark-turn', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error('Benchmark turn failed')
+  return res.json() as Promise<BenchmarkTurnOutput>
 }
 
 /**
