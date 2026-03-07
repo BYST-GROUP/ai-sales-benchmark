@@ -422,7 +422,7 @@ export default function Home() {
 
             {/* Heading */}
             <h2 className="mt-6 font-display text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-              What You&apos;ll Get In 6–12 Minutes
+              20 Minutes. Your AI Sales Systems Competitive Advantage.
             </h2>
 
             {/* Supporting text */}
@@ -436,11 +436,11 @@ export default function Home() {
               {/* Card 1 */}
               <div className="border border-border rounded-xl p-6 md:p-8 bg-card flex flex-col">
                 <p className="text-xs tracking-widest uppercase text-muted-foreground">01</p>
-                <h3 className="mt-3 font-display text-lg font-semibold text-white leading-snug">
-                  Your AI Sales Systems Benchmark
+                <h3 className="mt-3 font-display text-xl font-semibold text-white leading-snug">
+                  See How You Compare
                 </h3>
                 <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
-                  See how your company compares to similar companies.
+                  See how your sales systems compare to companies similar to yours.
                 </p>
                 <p className="mt-4 text-xs tracking-wide uppercase text-muted-foreground">
                   The benchmark evaluates how AI is used across:
@@ -464,8 +464,8 @@ export default function Home() {
               {/* Card 2 */}
               <div className="border border-border rounded-xl p-6 md:p-8 bg-card flex flex-col">
                 <p className="text-xs tracking-widest uppercase text-muted-foreground">02</p>
-                <h3 className="mt-3 font-display text-lg font-semibold text-white leading-snug">
-                  Your Estimated AI Revenue Opportunity
+                <h3 className="mt-3 font-display text-xl font-semibold text-white leading-snug">
+                  Understand the Impact — Understand the Opportunity
                 </h3>
                 <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
                   Your Sales Systems will become a competitive advantage.
@@ -496,11 +496,11 @@ export default function Home() {
               {/* Card 3 */}
               <div className="border border-border rounded-xl p-6 md:p-8 bg-card flex flex-col">
                 <p className="text-xs tracking-widest uppercase text-muted-foreground">03</p>
-                <h3 className="mt-3 font-display text-lg font-semibold text-white leading-snug">
-                  Your Personalized AI Implementation Plan
+                <h3 className="mt-3 font-display text-xl font-semibold text-white leading-snug">
+                  Personalized Implementation Plan
                 </h3>
                 <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
-                  At the end of the benchmark, you receive a personalized plan outlining the top AI use cases that would drive business impact.
+                  You will receive a personalized plan outlining the top use cases that drive business impact.
                 </p>
                 <p className="mt-4 text-xs tracking-wide uppercase text-muted-foreground">
                   This includes example use cases &amp; prompts such as:
@@ -527,10 +527,39 @@ export default function Home() {
 
             </div>
 
-            {/* Reassurance line */}
-            <p className="mt-10 text-center text-xs text-muted-foreground tracking-wide">
-              ⏱ Takes 6–12 minutes • No preparation required
-            </p>
+            {/* Bottom CTA */}
+            <div className="mt-16 flex flex-col items-center gap-4">
+              <div className="w-full max-w-xl">
+                <div className="flex items-center rounded-full bg-[#1a1a1a] border border-white/10 px-5 py-3">
+                  <input
+                    type="text"
+                    placeholder="yourdomain.com"
+                    value={domain}
+                    onChange={e => setDomain(e.target.value)}
+                    onKeyDown={handleHeroKey}
+                    className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none py-1.5"
+                  />
+                  <button
+                    onClick={handleSubmit}
+                    className="ml-3 flex-shrink-0 w-8 h-8 rounded-full bg-[#1a1a1a] border border-[#009e8f] flex items-center justify-center hover:bg-[#222] transition-colors"
+                    aria-label="Start benchmark"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-primary">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={handleSubmit}
+                className="rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors"
+              >
+                Benchmark Your AI Sales Systems
+              </button>
+              <p className="text-xs text-muted-foreground tracking-wide">
+                ⏱ Takes 20 minutes • No preparation required
+              </p>
+            </div>
 
           </div>
         </section>
