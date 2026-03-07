@@ -96,6 +96,7 @@ Score the current question and identify if any remaining questions were also ans
       question: currentQuestionText,
       answer,
       scores,
+      token_usage: message.usage,
     })
 
     return NextResponse.json({ scores })
