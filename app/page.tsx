@@ -544,7 +544,7 @@ function HomeContent() {
 
             {/* Heading */}
             <h2 className="mt-6 font-display text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-              Your AI Sales Systems as a Competitive Advantage
+              Complete the Benchmark, and you will:
             </h2>
 
             {/* Cards grid */}
@@ -614,7 +614,7 @@ function HomeContent() {
               <div className="border border-border rounded-xl p-6 md:p-8 bg-card flex flex-col">
                 <p className="text-xs tracking-widest uppercase text-muted-foreground">03</p>
                 <h3 className="mt-3 font-display text-xl font-semibold text-white leading-snug">
-                  Personalized Implementation Plan
+                  Get an implementation plan with personalised AI use cases
                 </h3>
                 <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
                   You will receive a personalized plan outlining the top use cases that drive business impact.
