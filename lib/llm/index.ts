@@ -13,4 +13,4 @@ export function getLLMClient(): LLMClient {
 }
 
 export type { LLMClient, LLMCallInput, LLMCallOutput, LLMUsage } from './types'
-export { LLM_PROVIDER, OPENAI_PROMPT_IDS, OPENAI_MODEL } from './config'
+export { LLM_PROVIDER, OPENAI_PROMPT_IDS } from './config'

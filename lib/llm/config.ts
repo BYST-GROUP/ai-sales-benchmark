@@ -10,9 +10,6 @@
 export const LLM_PROVIDER: 'anthropic' | 'openai' =
   process.env.LLM_PROVIDER === 'openai' ? 'openai' : 'anthropic'
 
-/** OpenAI model to use. Defaults to gpt-4o. */
-export const OPENAI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-4o'
-
 /**
  * Stored prompt IDs for each LLM call site (OpenAI Prompt Management).
  * Only required when LLM_PROVIDER=openai.

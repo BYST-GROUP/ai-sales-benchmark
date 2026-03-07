@@ -1,5 +1,4 @@
 import OpenAI from 'openai'
-import { OPENAI_MODEL } from './config'
 import type { LLMCallInput, LLMCallOutput, LLMClient } from './types'
 
 export class OpenAILLMClient implements LLMClient {
@@ -13,14 +12,14 @@ export class OpenAILLMClient implements LLMClient {
     // Instantiated at call-time so OPENAI_API_KEY is guaranteed to be loaded
     const openai = new OpenAI()
 
-    // System prompt is stored on the OpenAI platform (Prompt Management).
-    // We reference it by ID — no system prompt is sent in the request body.
+    // The model and its configuration (including reasoning settings) are defined
+    // in the stored prompt on the OpenAI platform — we do not specify a model here
+    // so the prompt's own configuration takes precedence and no parameter conflicts occur.
     const response = await openai.responses.create({
-      model: OPENAI_MODEL,
       prompt: { id: promptId },
       input: userMessage,
       max_output_tokens: maxTokens,
-    })
+    } as Parameters<typeof openai.responses.create>[0])
 
     return {
       text: response.output_text,
