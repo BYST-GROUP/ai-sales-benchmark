@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { ACTIVE_QUESTIONS, ACTIVE_QUESTION_IDS, QUESTION_MAP } from '@/lib/questions'
 import { BenchmarkState, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
-import { scoreAnswer, getSkippedQuestions } from '@/lib/benchmark-scoring'
+import { processBenchmarkTurn, getSkippedQuestions } from '@/lib/benchmark-scoring'
+import { getStageTransition } from '@/lib/benchmark/stageTransitions'
+import type { ConversationTurn } from '@/lib/benchmark/types'
 import { MaturityLabel, CURRENT_STAGE_CONTENT, NEXT_STAGE_CONTENT } from '@/lib/results-content'
 import MaturityCurveChart from '@/components/MaturityCurveChart'
 import { domainFromSlug, slugFromDomain } from '@/lib/slug'
@@ -66,6 +68,8 @@ function HomeContent() {
   const [isBenchmarkLoading, setIsBenchmarkLoading] = useState(false)
   const [benchmarkInput, setBenchmarkInput] = useState('')
   const [hasUserResponded, setHasUserResponded] = useState(false)
+  // Single-LLM mode: options returned by the AI (falls back to QUESTION_MAP options in multi mode)
+  const [currentOptions, setCurrentOptions] = useState<string[] | undefined>(undefined)
 
   // Streaming state
   const [streamingMessage, setStreamingMessage] = useState<string | null>(null)
@@ -88,6 +92,10 @@ function HomeContent() {
   const resolvedMessage = useRef<string | null>(null)
   const apiDone = useRef(false)
   const didAutoStart = useRef(false)
+  // Company context from enrichment — passed to benchmark-turn API for Single-LLM context
+  const companyContextRef = useRef<string>('')
+  // Conversation history for Single-LLM mode
+  const conversationHistoryRef = useRef<ConversationTurn[]>([])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -244,7 +252,9 @@ function HomeContent() {
           body?.error ?? "I couldn't find data for this domain. Can you tell me a bit about your company?"
       } else {
         const data = await res.json()
-        resolvedMessage.current = data.enrichment_message ?? "I couldn't find data for this domain. Can you tell me a bit about your company?"
+        const enrichmentMsg = data.enrichment_message ?? "I couldn't find data for this domain. Can you tell me a bit about your company?"
+        resolvedMessage.current = enrichmentMsg
+        companyContextRef.current = enrichmentMsg
       }
     } catch {
       resolvedMessage.current =
@@ -332,22 +342,40 @@ function HomeContent() {
 
     setMessages(prev => [...prev, { role: 'user', content: trimmed }])
     setBenchmarkInput('')
+    setCurrentOptions(undefined) // reset options while loading
     setIsBenchmarkLoading(true)
 
     try {
       const remainingForScoring = benchmarkState.remainingQuestions
-      const newScores = await scoreAnswer(currentQuestionId, trimmed, remainingForScoring, sessionIdRef.current)
 
+      const output = await processBenchmarkTurn({
+        currentQuestionId,
+        answer: trimmed,
+        remainingQuestions: remainingForScoring,
+        sessionId: sessionIdRef.current,
+        companyContext: companyContextRef.current || undefined,
+        conversationHistory: conversationHistoryRef.current,
+        currentScores: benchmarkState.scores,
+      })
+
+      const newScores = output.scores
       const remainingExcludingCurrent = remainingForScoring.filter(id => id !== currentQuestionId)
       const skipped = getSkippedQuestions(remainingExcludingCurrent, newScores, currentQuestionId)
 
       const updatedState = applyScores(benchmarkState, trimmed, currentQuestionId, newScores)
       setBenchmarkState(updatedState)
 
+      // Track conversation history for Single-LLM context
+      conversationHistoryRef.current = [
+        ...conversationHistoryRef.current,
+        { questionId: currentQuestionId, answer: trimmed },
+      ]
+
       const nextId = updatedState.remainingQuestions[0] ?? null
       setIsBenchmarkLoading(false)
 
       if (!nextId) {
+        // Benchmark complete
         setBenchmarkPhase('complete')
         setCurrentQuestionId(null)
         fetch('/api/log', {
@@ -363,15 +391,34 @@ function HomeContent() {
             scores: updatedState.scores,
           }),
         }).catch(() => {})
-        streamAiMessage("That covers everything — let me put your results together.", () => {
+        const closingText = output.message
+          ? output.message
+          : "That covers everything — let me put your results together."
+        streamAiMessage(closingText, () => {
           window.history.pushState({}, '', `/benchmark/session/${sessionIdRef.current}`)
           setTimeout(() => setPhase('results'), 600)
         })
+      } else if (output.message) {
+        // ── Single-LLM mode: stream the AI-generated message (ack + transition + question) ──
+        if (output.options) setCurrentOptions(output.options)
+        streamAiMessage(output.message, () => setCurrentQuestionId(output.nextQuestionId ?? nextId))
       } else {
+        // ── Multi-LLM mode: compose message from static data + stage transition ──
+        const fromPillar = QUESTION_MAP[currentQuestionId]?.pillar
+        const toPillar = QUESTION_MAP[nextId]?.pillar
+        const transition = getStageTransition(fromPillar, toPillar)
+
         const nextQuestion = QUESTION_MAP[nextId]
-        const aiText = skipped.length > 0
-          ? `Got it — that covers a few things.\n\n${nextQuestion.text}`
-          : nextQuestion.text
+        let aiText: string
+
+        if (transition) {
+          aiText = transition + '\n\n' + nextQuestion.text
+        } else if (skipped.length > 0) {
+          aiText = `Got it — that covers a few things.\n\n${nextQuestion.text}`
+        } else {
+          aiText = nextQuestion.text
+        }
+
         streamAiMessage(aiText, () => setCurrentQuestionId(nextId))
       }
     } catch {
@@ -750,7 +797,8 @@ function HomeContent() {
               /* Benchmark input — options panel or free-text */
               (() => {
                 const currentQuestion = currentQuestionId ? QUESTION_MAP[currentQuestionId] : null
-                const opts = currentQuestion?.options
+                // currentOptions holds AI-generated options (Single-LLM); falls back to static QUESTION_MAP options
+                const opts = currentOptions ?? currentQuestion?.options
                 if (opts && opts.length > 0) {
                   return (
                     <div className="bg-card border border-border rounded-xl overflow-hidden">
