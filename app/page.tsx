@@ -324,7 +324,7 @@ export default function Home() {
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
       <div
-        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${
+        className={`absolute inset-0 overflow-y-auto transition-opacity duration-500 ${
           phase !== 'hero' ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
@@ -334,72 +334,206 @@ export default function Home() {
           <span className="mt-1 block h-[2px] w-full bg-[#009e8f]" />
         </div>
 
-        <div className="flex flex-col items-center text-center px-6 w-full">
-          <span
-            className="text-xs tracking-widest uppercase text-primary border border-primary rounded-full px-4 py-1.5 inline-block bg-background fade-up"
-            style={{ animationDelay: '0ms' }}
-          >
-            For B2B AI &amp; SaaS
-          </span>
+        {/* Full-screen hero */}
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center text-center px-6 w-full">
+            <span
+              className="text-xs tracking-widest uppercase text-primary border border-primary rounded-full px-4 py-1.5 inline-block bg-background fade-up"
+              style={{ animationDelay: '0ms' }}
+            >
+              For B2B AI &amp; SaaS
+            </span>
 
-          <p className="text-xs tracking-widest uppercase text-muted-foreground fade-up mt-3" style={{ animationDelay: '40ms' }}>
-            AI Sales Systems Benchmark
-          </p>
+            <p className="text-xs tracking-widest uppercase text-muted-foreground fade-up mt-3" style={{ animationDelay: '40ms' }}>
+              AI Sales Systems Benchmark
+            </p>
 
-          <div className="accent-line mx-auto mt-4 fade-up" style={{ animationDelay: '80ms' }} />
+            <div className="accent-line mx-auto mt-4 fade-up" style={{ animationDelay: '80ms' }} />
 
-          <h1
-            className="mt-10 max-w-6xl text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] fade-up"
-            style={{ animationDelay: '180ms' }}
-          >
-            Do you have leading AI Sales Systems?
-          </h1>
+            <h1
+              className="mt-10 max-w-6xl text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] fade-up"
+              style={{ animationDelay: '180ms' }}
+            >
+              Do you have leading AI Sales Systems?
+            </h1>
 
-          <p
-            className="mt-6 max-w-6xl text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
-            style={{ animationDelay: '280ms' }}
-          >
-            89% of enterprises are investing in AI, but only a fraction have built the systems that actually win deals.<br />
-            <em className="text-primary">Find out where you stand.</em>
-          </p>
+            <p
+              className="mt-6 max-w-6xl text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
+              style={{ animationDelay: '280ms' }}
+            >
+              89% of enterprises are investing in AI, but only a fraction have built the systems that actually win deals.<br />
+              <em className="text-primary">Find out where you stand.</em>
+            </p>
 
-          <div className="mt-10 w-full max-w-xl fade-up" style={{ animationDelay: '380ms' }}>
-            <div className="flex items-center rounded-full bg-[#1a1a1a] border border-white/10 px-5 py-3">
-              <input
-                type="text"
-                placeholder="yourdomain.com"
-                value={domain}
-                onChange={e => setDomain(e.target.value)}
-                onKeyDown={handleHeroKey}
-                className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none py-1.5"
-              />
-              <button
-                onClick={handleSubmit}
-                className="ml-3 flex-shrink-0 w-8 h-8 rounded-full bg-[#1a1a1a] border border-[#009e8f] flex items-center justify-center hover:bg-[#222] transition-colors"
-                aria-label="Start benchmark"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-primary">
-                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                </svg>
-              </button>
+            <div className="mt-10 w-full max-w-xl fade-up" style={{ animationDelay: '380ms' }}>
+              <div className="flex items-center rounded-full bg-[#1a1a1a] border border-white/10 px-5 py-3">
+                <input
+                  type="text"
+                  placeholder="yourdomain.com"
+                  value={domain}
+                  onChange={e => setDomain(e.target.value)}
+                  onKeyDown={handleHeroKey}
+                  className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none py-1.5"
+                />
+                <button
+                  onClick={handleSubmit}
+                  className="ml-3 flex-shrink-0 w-8 h-8 rounded-full bg-[#1a1a1a] border border-[#009e8f] flex items-center justify-center hover:bg-[#222] transition-colors"
+                  aria-label="Start benchmark"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-primary">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              className="mt-4 rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors fade-up"
+              style={{ animationDelay: '420ms' }}
+            >
+              Benchmark Your AI Sales Systems
+            </button>
+
+            <p
+              className="mt-6 text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
+              style={{ animationDelay: '460ms' }}
+            >
+              Your AI sales systems will be your GTM competitive advantage
+            </p>
+
+            {/* Scroll hint */}
+            <div className="mt-12 flex flex-col items-center gap-1.5 fade-up" style={{ animationDelay: '540ms' }}>
+              <p className="text-xs text-muted-foreground tracking-wide">What you&apos;ll get</p>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-muted-foreground animate-bounce fill-current">
+                <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+              </svg>
             </div>
           </div>
-
-          <button
-            onClick={handleSubmit}
-            className="mt-4 rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors fade-up"
-            style={{ animationDelay: '420ms' }}
-          >
-            Benchmark Your AI Sales Systems
-          </button>
-
-          <p
-            className="mt-6 text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
-            style={{ animationDelay: '460ms' }}
-          >
-            Your AI sales systems will be your GTM competitive advantage
-          </p>
         </div>
+
+        {/* ── What You'll Get ─────────────────────────────────────────────────── */}
+        <section className="section-pad border-t border-border">
+          <div className="max-w-6xl mx-auto">
+
+            {/* Eyebrow */}
+            <p className="text-xs tracking-widest uppercase text-primary">What you&apos;ll get</p>
+            <div className="accent-line mt-3" />
+
+            {/* Heading */}
+            <h2 className="mt-6 font-display text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
+              What You&apos;ll Get In 6–12 Minutes
+            </h2>
+
+            {/* Supporting text */}
+            <p className="mt-4 max-w-2xl text-sm md:text-base text-secondary-foreground leading-relaxed">
+              AI is rapidly becoming the biggest leverage in revenue teams. This benchmark shows whether your sales organization is ahead or falling behind.
+            </p>
+
+            {/* Cards grid */}
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+
+              {/* Card 1 */}
+              <div className="border border-border rounded-xl p-6 md:p-8 bg-card flex flex-col">
+                <p className="text-xs tracking-widest uppercase text-muted-foreground">01</p>
+                <h3 className="mt-3 font-display text-lg font-semibold text-white leading-snug">
+                  Your AI Sales Systems Benchmark
+                </h3>
+                <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
+                  See how your company compares to similar companies.
+                </p>
+                <p className="mt-4 text-xs tracking-wide uppercase text-muted-foreground">
+                  The benchmark evaluates how AI is used across:
+                </p>
+                <ul className="mt-3 flex flex-col gap-2">
+                  {['AE productivity systems', 'Sales leader insight systems', 'Enablement systems'].map(item => (
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-secondary-foreground">
+                      <span className="mt-[5px] h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-6">
+                  <div className="h-px bg-border mb-4" />
+                  <p className="text-sm text-primary leading-relaxed">
+                    Understand whether your sales systems are keeping up with the market.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 2 */}
+              <div className="border border-border rounded-xl p-6 md:p-8 bg-card flex flex-col">
+                <p className="text-xs tracking-widest uppercase text-muted-foreground">02</p>
+                <h3 className="mt-3 font-display text-lg font-semibold text-white leading-snug">
+                  Your Estimated AI Revenue Opportunity
+                </h3>
+                <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
+                  Your Sales Systems will become a competitive advantage.
+                </p>
+                <p className="mt-4 text-xs tracking-wide uppercase text-muted-foreground">
+                  The benchmark results estimates your cost of opportunity:
+                </p>
+                <ul className="mt-3 flex flex-col gap-2">
+                  {[
+                    'How much selling time AI could recover for your reps',
+                    'How much you could increase velocity, win rate and quota per rep',
+                    'The potential revenue opportunity',
+                  ].map(item => (
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-secondary-foreground">
+                      <span className="mt-[5px] h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-6">
+                  <div className="h-px bg-border mb-4" />
+                  <p className="text-sm text-primary leading-relaxed">
+                    See the real cost of not implementing AI sales systems.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 3 */}
+              <div className="border border-border rounded-xl p-6 md:p-8 bg-card flex flex-col">
+                <p className="text-xs tracking-widest uppercase text-muted-foreground">03</p>
+                <h3 className="mt-3 font-display text-lg font-semibold text-white leading-snug">
+                  Your Personalized AI Implementation Plan
+                </h3>
+                <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
+                  At the end of the benchmark, you receive a personalized plan outlining the top AI use cases that would drive business impact.
+                </p>
+                <p className="mt-4 text-xs tracking-wide uppercase text-muted-foreground">
+                  This includes example use cases &amp; prompts such as:
+                </p>
+                <ul className="mt-3 flex flex-col gap-2">
+                  {[
+                    'AI meeting intelligence and automated follow-ups',
+                    'Deal risk detection and pipeline insights',
+                    'AI enablement copilots for objection handling and playbooks',
+                  ].map(item => (
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-secondary-foreground">
+                      <span className="mt-[5px] h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-6">
+                  <div className="h-px bg-border mb-4" />
+                  <p className="text-sm text-primary leading-relaxed">
+                    Leave with templates &amp; clear next steps to turn your systems into a real GTM advantage.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Reassurance line */}
+            <p className="mt-10 text-center text-xs text-muted-foreground tracking-wide">
+              ⏱ Takes 6–12 minutes • No preparation required
+            </p>
+
+          </div>
+        </section>
       </div>
 
       {/* ── Chat ──────────────────────────────────────────────────────────────── */}
