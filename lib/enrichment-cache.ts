@@ -16,9 +16,14 @@ const SIX_MONTHS_MS      = 6 * 30 * 24 * 60 * 60 * 1000
 const SIX_MONTHS_SECONDS = 6 * 30 * 24 * 60 * 60
 
 // Use Upstash Redis when env vars are present (Vercel injects these when Upstash is connected)
-const USE_KV   = !!process.env.UPSTASH_REDIS_REST_URL
+// Also handle the legacy KV_REST_API_URL name that older Vercel integrations used
+const UPSTASH_URL   = process.env.UPSTASH_REDIS_REST_URL   ?? process.env.KV_REST_API_URL   ?? ''
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN ?? ''
+const USE_KV   = !!UPSTASH_URL
 // Only use the local file cache when NOT running on Vercel (filesystem is read-only there)
 const USE_FILE = !process.env.VERCEL && !USE_KV
+
+console.log(`[enrichment-cache] USE_KV=${USE_KV} USE_FILE=${USE_FILE} VERCEL=${!!process.env.VERCEL} URL_SET=${!!UPSTASH_URL}`)
 
 export interface CacheEntry {
   cachedAt: string
@@ -74,8 +79,8 @@ function fileSet(key: string, entry: CacheEntry): void {
 async function getRedis() {
   const { Redis } = await import('@upstash/redis')
   return new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL!,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    url: UPSTASH_URL,
+    token: UPSTASH_TOKEN,
   })
 }
 
