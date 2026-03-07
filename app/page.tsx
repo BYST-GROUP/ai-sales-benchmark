@@ -51,9 +51,9 @@ export default function Home() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
 
-  // Text-to-speech state
-  const [ttsEnabled, setTtsEnabled] = useState(false)
-  const ttsEnabledRef = useRef(false)
+  // Textarea refs for auto-resize
+  const benchmarkTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const correctionTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const submittedDomain = useRef('')
   const sessionIdRef = useRef('')
@@ -67,25 +67,19 @@ export default function Home() {
     return () => {
       if (streamIntervalRef.current) clearInterval(streamIntervalRef.current)
       recognitionRef.current?.stop()
-      window.speechSynthesis?.cancel()
     }
   }, [])
 
-  function speakText(text: string) {
-    if (!ttsEnabledRef.current || typeof window === 'undefined' || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const clean = text.replace(/\n+/g, ' ').trim()
-    const utterance = new SpeechSynthesisUtterance(clean)
-    utterance.rate = 1.0
-    window.speechSynthesis.speak(utterance)
-  }
+  // Auto-resize textarea when value changes (e.g. via voice input)
+  useEffect(() => {
+    const el = benchmarkTextareaRef.current
+    if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px' }
+  }, [benchmarkInput])
 
-  function toggleTts() {
-    const next = !ttsEnabledRef.current
-    ttsEnabledRef.current = next
-    setTtsEnabled(next)
-    if (!next) window.speechSynthesis?.cancel()
-  }
+  useEffect(() => {
+    const el = correctionTextareaRef.current
+    if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px' }
+  }, [correction])
 
   function clearStatusTimers() {
     statusTimers.current.forEach(clearTimeout)
@@ -107,7 +101,6 @@ export default function Home() {
         setStreamingMessage(null)
         setIsStreaming(false)
         setMessages(prev => [...prev, { role: 'ai', content: text }])
-        speakText(text)
         onComplete?.()
       }
     }, 14)
@@ -126,7 +119,7 @@ export default function Home() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rec = new SR() as any
     rec.lang = 'en-US'
-    rec.continuous = false
+    rec.continuous = true
     rec.interimResults = true
     let finalTranscript = ''
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -418,36 +411,16 @@ export default function Home() {
             <span className="font-display font-normal text-xl tracking-[0.15em] text-white">BYST</span>
             <span className="mt-0.5 block h-[2px] w-full bg-[#009e8f]" />
           </div>
-          <div className="ml-auto flex items-center gap-4">
-            <button
-              type="button"
-              onClick={toggleTts}
-              aria-label={ttsEnabled ? 'Mute voice' : 'Enable voice'}
-              className={`flex items-center justify-center w-7 h-7 rounded-full transition-all ${
-                ttsEnabled ? 'text-primary' : 'text-muted-foreground hover:text-white'
-              }`}
-            >
-              {ttsEnabled ? (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-                  <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-                </svg>
-              )}
-            </button>
-            <span className="font-sans text-sm font-normal text-white">Sales Systems Benchmark</span>
-          </div>
+          <span className="ml-auto font-sans text-sm font-normal text-white">Sales Systems Benchmark</span>
         </header>
 
         {/* Progress bar */}
-        {benchmarkPhase !== 'idle' && (() => {
+        {(() => {
           const total = ACTIVE_QUESTION_IDS.length
           const answered = total - benchmarkState.remainingQuestions.length
-          const pct = benchmarkPhase === 'complete' ? 100 : Math.round((answered / total) * 100)
+          const pct = benchmarkPhase === 'complete' ? 100 : benchmarkPhase === 'idle' ? 0 : Math.round((answered / total) * 100)
           return (
-            <div className="flex-shrink-0 h-[2px] w-full bg-border">
+            <div className="flex-shrink-0 h-1 w-full bg-border">
               <div className="h-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
             </div>
           )
@@ -515,18 +488,22 @@ export default function Home() {
                 </button>
 
                 {/* Row 2 — Something else (inline input) */}
-                <form onSubmit={handleCorrection} className="flex items-center gap-3 px-4 py-3.5">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center">
+                <form onSubmit={handleCorrection} className="flex items-end gap-3 px-4 py-3.5">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center mb-0.5">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-3 h-3 fill-muted-foreground">
                       <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                     </svg>
                   </span>
-                  <input
-                    type="text"
+                  <textarea
+                    ref={correctionTextareaRef}
+                    rows={1}
                     placeholder="Something else..."
                     value={correction}
                     onChange={e => setCorrection(e.target.value)}
-                    className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+                    onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px' }}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }}
+                    className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none resize-none overflow-hidden leading-5"
+                    style={{ minHeight: '1.25rem' }}
                     autoFocus
                   />
                   <MicButton isRecording={isRecording} onClick={() => toggleMic(setCorrection)} />
@@ -564,18 +541,22 @@ export default function Home() {
                           <span className="text-sm text-white">{opt}</span>
                         </button>
                       ))}
-                      <form onSubmit={handleBenchmarkAnswer} className="flex items-center gap-3 px-4 py-3.5">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center">
+                      <form onSubmit={handleBenchmarkAnswer} className="flex items-end gap-3 px-4 py-3.5">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-md bg-background border border-border flex items-center justify-center mb-0.5">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-3 h-3 fill-muted-foreground">
                             <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                           </svg>
                         </span>
-                        <input
-                          type="text"
+                        <textarea
+                          ref={benchmarkTextareaRef}
+                          rows={1}
                           placeholder="Something else..."
                           value={benchmarkInput}
                           onChange={e => setBenchmarkInput(e.target.value)}
-                          className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+                          onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px' }}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }}
+                          className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none resize-none overflow-hidden leading-5"
+                          style={{ minHeight: '1.25rem' }}
                         />
                         <MicButton isRecording={isRecording} onClick={() => toggleMic(setBenchmarkInput)} />
                         <button
@@ -593,13 +574,17 @@ export default function Home() {
                   )
                 }
                 return (
-                  <form onSubmit={handleBenchmarkAnswer} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
-                    <input
-                      type="text"
+                  <form onSubmit={handleBenchmarkAnswer} className="flex items-end gap-3 bg-card border border-border rounded-2xl px-4 py-3">
+                    <textarea
+                      ref={benchmarkTextareaRef}
+                      rows={1}
                       placeholder="Your answer..."
                       value={benchmarkInput}
                       onChange={e => setBenchmarkInput(e.target.value)}
-                      className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+                      onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px' }}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }}
+                      className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none resize-none overflow-hidden leading-5"
+                      style={{ minHeight: '1.25rem' }}
                       autoFocus
                     />
                     <MicButton isRecording={isRecording} onClick={() => toggleMic(setBenchmarkInput)} />
@@ -618,13 +603,17 @@ export default function Home() {
               })()
             ) : !showOptions && !isTyping && messages.length > 0 && messages[messages.length - 1].role === 'ai' && messages[messages.length - 1].content.startsWith("I couldn't find") ? (
               /* Fallback free-text input */
-              <form onSubmit={handleCorrection} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
-                <input
-                  type="text"
+              <form onSubmit={handleCorrection} className="flex items-end gap-3 bg-card border border-border rounded-2xl px-4 py-3">
+                <textarea
+                  ref={correctionTextareaRef}
+                  rows={1}
                   placeholder="Tell us about your company..."
                   value={correction}
                   onChange={e => setCorrection(e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none"
+                  onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px' }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }}
+                  className="flex-1 bg-transparent text-sm text-white placeholder:text-muted-foreground outline-none resize-none overflow-hidden leading-5"
+                  style={{ minHeight: '1.25rem' }}
                   autoFocus
                 />
                 <MicButton isRecording={isRecording} onClick={() => toggleMic(setCorrection)} />
