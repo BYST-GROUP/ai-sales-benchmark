@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
+    "@upstash/redis": "^1.36.3",
     "googleapis": "^171.4.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "recharts": "^3.7.0"
+    "recharts": "^3.7.0",
+    "vercel": "^50.28.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

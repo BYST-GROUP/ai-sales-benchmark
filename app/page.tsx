@@ -40,6 +40,7 @@ export default function Home() {
   const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(null)
   const [isBenchmarkLoading, setIsBenchmarkLoading] = useState(false)
   const [benchmarkInput, setBenchmarkInput] = useState('')
+  const [hasUserResponded, setHasUserResponded] = useState(false)
 
   // Streaming state
   const [streamingMessage, setStreamingMessage] = useState<string | null>(null)
@@ -232,6 +233,7 @@ export default function Home() {
     setMessages(prev => [...prev, { role: 'user', content: 'Looks good ✓' }])
     setShowOptions(false)
     setShowFinalTyping(true)
+    setHasUserResponded(true)
   }
 
   function handleCorrection(e: React.FormEvent) {
@@ -242,6 +244,7 @@ export default function Home() {
     setCorrection('')
     setShowOptions(false)
     setShowFinalTyping(true)
+    setHasUserResponded(true)
   }
 
   // When "Great, let's begin..." animation ends, stream intro then Q1
@@ -416,9 +419,11 @@ export default function Home() {
 
         {/* Progress bar */}
         {(() => {
-          const total = ACTIVE_QUESTION_IDS.length
-          const answered = total - benchmarkState.remainingQuestions.length
-          const pct = benchmarkPhase === 'complete' ? 100 : benchmarkPhase === 'idle' ? 0 : Math.round((answered / total) * 100)
+          // +1 for the research confirmation step (Looks Good / correction)
+          const total = ACTIVE_QUESTION_IDS.length + 1
+          const benchmarkAnswered = ACTIVE_QUESTION_IDS.length - benchmarkState.remainingQuestions.length
+          const answered = (hasUserResponded ? 1 : 0) + benchmarkAnswered
+          const pct = Math.round((answered / total) * 100)
           return (
             <div className="flex-shrink-0 h-1 w-full bg-border">
               <div className="h-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
