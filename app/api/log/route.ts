@@ -4,7 +4,7 @@ import { appendLog } from '@/lib/logger'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    appendLog(body)
+    await appendLog(body)
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[log] error:', err)

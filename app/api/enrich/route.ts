@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
     // Step 1: Check cache — skip Claude entirely if fresh data exists (< 6 months old)
     const cached = await getCachedEnrichment(domain)
     if (cached) {
-      appendLog({ event: 'enrich_cache_hit', sessionId, domain })
+      await appendLog({ event: 'enrich_cache_hit', sessionId, domain })
       return NextResponse.json({ ...cached.profile, enrichment_message: cached.enrichment_message })
     }
 
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
     // Step 5: Save to cache for future requests
     await setCachedEnrichment(domain, profile, claudeResponse.enrichment_message)
 
-    appendLog({
+    await appendLog({
       event: 'enrich_tokens',
       sessionId,
       domain,

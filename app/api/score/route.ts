@@ -89,7 +89,7 @@ Score the current question and identify if any remaining questions were also ans
       scores[currentQuestionId] = 2
     }
 
-    appendLog({
+    await appendLog({
       event: 'benchmark_answer',
       sessionId: sessionId ?? null,
       questionId: currentQuestionId,
