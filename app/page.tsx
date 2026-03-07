@@ -1081,10 +1081,39 @@ function HomeContent() {
   )
 }
 
-function AiBubble({ content }: { content: string }) {
+/** Renders a single line of text, converting **bold** spans to <strong>. */
+function renderInline(line: string, key: number) {
+  const parts = line.split(/(\*\*[^*]+\*\*)/)
   return (
-    <div className="max-w-xl text-sm text-white leading-relaxed whitespace-pre-line py-1">
-      {content}
+    <span key={key}>
+      {parts.map((part, i) =>
+        part.startsWith('**') && part.endsWith('**')
+          ? <strong key={i} className="font-semibold text-white">{part.slice(2, -2)}</strong>
+          : part
+      )}
+    </span>
+  )
+}
+
+function AiBubble({ content }: { content: string }) {
+  const lines = content.split('\n')
+  return (
+    <div className="max-w-xl text-sm text-white leading-relaxed py-1 flex flex-col gap-1">
+      {lines.map((line, i) => {
+        // Bullet lines: lines starting with "• " or "- " or "* "
+        const bulletMatch = line.match(/^([•\-*])\s+(.*)$/)
+        if (bulletMatch) {
+          return (
+            <div key={i} className="flex items-start gap-2">
+              <span className="mt-[5px] h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+              <span>{renderInline(bulletMatch[2], i)}</span>
+            </div>
+          )
+        }
+        // Empty line → small spacer
+        if (line.trim() === '') return <div key={i} className="h-1" />
+        return <div key={i}>{renderInline(line, i)}</div>
+      })}
     </div>
   )
 }
