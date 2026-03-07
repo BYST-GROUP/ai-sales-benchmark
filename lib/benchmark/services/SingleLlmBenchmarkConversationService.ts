@@ -15,19 +15,27 @@ interface SingleLlmResponse {
 
 export class SingleLlmBenchmarkConversationService implements BenchmarkConversationService {
   async processAnswer(input: BenchmarkTurnInput): Promise<BenchmarkTurnOutput> {
-    const { currentQuestionId, sessionId, answer } = input
+    const { currentQuestionId, sessionId, answer, previousResponseId } = input
 
     // Anthropic: full context embedded in userMessage text
     // OpenAI: context passed as template variables to fill {{placeholder}} slots
+    //
+    // When previousResponseId is set (OpenAI Conversations API), conversation history
+    // is maintained server-side by OpenAI — we pass an empty historytext to avoid
+    // duplicating history that's already in the chained response context.
     const userMessage = buildSingleLlmUserMessage(input)
-    const variables = buildSingleLlmVariables(input)
+    const baseVariables = buildSingleLlmVariables(input)
+    const variables = previousResponseId
+      ? { ...baseVariables, historytext: '' }
+      : baseVariables
 
-    const { text, usage } = await getLLMClient().complete({
+    const { text, usage, responseId } = await getLLMClient().complete({
       systemPrompt: SINGLE_LLM_SYSTEM_PROMPT,
       promptId: OPENAI_PROMPT_IDS.singleLlm,
       userMessage,
       variables,
       maxTokens: 2048, // reasoning models need headroom for thinking + JSON output
+      previousResponseId,
     })
 
     let parsed: SingleLlmResponse | null = null
@@ -75,6 +83,7 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       message: displayMessage,
       options: parsed?.options ?? undefined,
       nextQuestionId: parsed?.next_question_id ?? undefined,
+      responseId,
     }
   }
 }

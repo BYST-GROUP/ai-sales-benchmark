@@ -11,6 +11,12 @@ export interface BenchmarkTurnInput {
   companyContext?: string
   conversationHistory?: ConversationTurn[]
   currentScores?: Record<string, number>
+  /**
+   * OpenAI Conversations API: response ID from the previous benchmark turn.
+   * When set, OpenAI maintains conversation history server-side and we skip
+   * re-sending historytext in template variables.
+   */
+  previousResponseId?: string
 }
 
 export interface BenchmarkTurnOutput {
@@ -21,6 +27,11 @@ export interface BenchmarkTurnOutput {
   options?: string[]
   /** Single-LLM only: the next question ID to show */
   nextQuestionId?: string
+  /**
+   * OpenAI Conversations API: response ID for this turn.
+   * Pass as `previousResponseId` on the next benchmark turn to chain the conversation.
+   */
+  responseId?: string
 }
 
 export interface BenchmarkConversationService {

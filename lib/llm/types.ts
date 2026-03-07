@@ -28,6 +28,14 @@ export interface LLMCallInput {
 
   /** Max tokens for the response. Defaults vary per client. */
   maxTokens?: number
+
+  /**
+   * OpenAI Conversations API: the response ID from the previous turn.
+   * When provided, OpenAI chains this response to the previous one, maintaining
+   * conversation history server-side (no need to re-send historytext each turn).
+   * Anthropic mode: ignored.
+   */
+  previousResponseId?: string
 }
 
 export interface LLMUsage {
@@ -40,6 +48,12 @@ export interface LLMCallOutput {
   text: string
   /** Token usage for logging/monitoring. May be undefined if not available. */
   usage?: LLMUsage
+  /**
+   * OpenAI Conversations API: the ID of this response.
+   * Pass as `previousResponseId` on the next turn to chain the conversation.
+   * Undefined for Anthropic responses.
+   */
+  responseId?: string
 }
 
 export interface LLMClient {

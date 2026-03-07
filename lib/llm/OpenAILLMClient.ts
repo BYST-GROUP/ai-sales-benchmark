@@ -13,7 +13,7 @@ function stripMarkdownCodeFence(text: string): string {
 }
 
 export class OpenAILLMClient implements LLMClient {
-  async complete({ promptId, userMessage, variables, maxTokens = 1024 }: LLMCallInput): Promise<LLMCallOutput> {
+  async complete({ promptId, userMessage, variables, maxTokens = 1024, previousResponseId }: LLMCallInput): Promise<LLMCallOutput> {
     if (!promptId) {
       throw new Error(
         '[OpenAILLMClient] No promptId provided. Set the corresponding OPENAI_*_PROMPT_ID env var.',
@@ -27,14 +27,21 @@ export class OpenAILLMClient implements LLMClient {
     // in the stored prompt on the OpenAI platform — we do not specify a model here
     // so the prompt's own configuration takes precedence and no parameter conflicts occur.
     // When variables are provided they fill {{placeholder}} slots in the stored prompt template.
-    const response = await openai.responses.create({
+    //
+    // When previousResponseId is set we use the OpenAI Conversations API to chain turns:
+    // OpenAI maintains the full conversation history server-side so we don't need to
+    // re-send historytext each turn. store:true persists this response for future chaining.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await (openai.responses.create as (params: Record<string, unknown>) => Promise<any>)({
       prompt: {
         id: promptId,
         ...(variables ? { variables } : {}),
       },
       input: userMessage,
       max_output_tokens: maxTokens,
-    } as Parameters<typeof openai.responses.create>[0])
+      store: true,
+      ...(previousResponseId ? { previous_response_id: previousResponseId } : {}),
+    })
 
     // output_text is the convenience accessor for message-type output items.
     // Fall back to scanning output array for text content if output_text is empty.
@@ -53,6 +60,9 @@ export class OpenAILLMClient implements LLMClient {
     }
 
     console.log('[OpenAILLMClient] raw response text:', rawText.slice(0, 300))
+    if (previousResponseId) {
+      console.log('[OpenAILLMClient] chained from previous_response_id:', previousResponseId)
+    }
 
     const text = stripMarkdownCodeFence(rawText)
 
@@ -61,6 +71,7 @@ export class OpenAILLMClient implements LLMClient {
       usage: response.usage
         ? { input_tokens: response.usage.input_tokens, output_tokens: response.usage.output_tokens }
         : undefined,
+      responseId: response.id,
     }
   }
 }

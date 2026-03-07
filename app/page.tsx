@@ -94,8 +94,10 @@ function HomeContent() {
   const didAutoStart = useRef(false)
   // Company context from enrichment — passed to benchmark-turn API for Single-LLM context
   const companyContextRef = useRef<string>('')
-  // Conversation history for Single-LLM mode
+  // Conversation history for Single-LLM mode (Anthropic) / fallback when no responseId yet
   const conversationHistoryRef = useRef<ConversationTurn[]>([])
+  // OpenAI Conversations API: response ID from the last benchmark turn, used to chain turns
+  const openAiResponseIdRef = useRef<string | undefined>(undefined)
 
   // Cleanup on unmount
   useEffect(() => {
@@ -114,6 +116,8 @@ function HomeContent() {
     sessionIdRef.current = crypto.randomUUID()
     resolvedMessage.current = null
     apiDone.current = false
+    conversationHistoryRef.current = []
+    openAiResponseIdRef.current = undefined
     setPhase('chat')
     setIsTyping(true)
     setStatusIndex(0)
@@ -222,6 +226,8 @@ function HomeContent() {
     sessionIdRef.current = crypto.randomUUID()
     resolvedMessage.current = null
     apiDone.current = false
+    conversationHistoryRef.current = []
+    openAiResponseIdRef.current = undefined
     setPhase('chat')
     setIsTyping(true)
     setStatusIndex(0)
@@ -356,6 +362,7 @@ function HomeContent() {
         companyContext: companyContextRef.current || undefined,
         conversationHistory: conversationHistoryRef.current,
         currentScores: benchmarkState.scores,
+        previousResponseId: openAiResponseIdRef.current,
       })
 
       const newScores = output.scores
@@ -365,11 +372,16 @@ function HomeContent() {
       const updatedState = applyScores(benchmarkState, trimmed, currentQuestionId, newScores)
       setBenchmarkState(updatedState)
 
-      // Track conversation history for Single-LLM context
+      // Track conversation history for Single-LLM context (Anthropic fallback)
       conversationHistoryRef.current = [
         ...conversationHistoryRef.current,
         { questionId: currentQuestionId, answer: trimmed },
       ]
+
+      // Store the OpenAI response ID to chain the next turn via Conversations API
+      if (output.responseId) {
+        openAiResponseIdRef.current = output.responseId
+      }
 
       const nextId = updatedState.remainingQuestions[0] ?? null
       setIsBenchmarkLoading(false)
