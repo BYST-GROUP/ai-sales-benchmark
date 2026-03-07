@@ -93,7 +93,47 @@ Return ONLY a valid JSON object:
 No text outside the JSON object.`
 
 /**
- * Builds the user message for the single-LLM benchmark turn.
+ * Builds the template variable map for the OpenAI stored prompt.
+ * Variable names match the {{placeholder}} slots defined in the stored prompt exactly.
+ */
+export function buildSingleLlmVariables(input: BenchmarkTurnInput): Record<string, string> {
+  const {
+    currentQuestionId,
+    answer,
+    remainingQuestions,
+    companyContext,
+    currentScores = {},
+    conversationHistory = [],
+  } = input
+
+  const currentQuestionText = QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId
+  const answeredCount = ACTIVE_QUESTION_IDS.length - remainingQuestions.length
+  const totalCount = ACTIVE_QUESTION_IDS.length
+
+  const remaining = remainingQuestions
+    .filter(id => id !== currentQuestionId)
+    .map(id => `${id}: ${QUESTION_MAP[id]?.text ?? id}`)
+    .join('\n')
+
+  const historyText = conversationHistory.length > 0
+    ? conversationHistory.map(t => `${t.questionId}: ${t.answer}`).join('\n')
+    : '(none yet)'
+
+  return {
+    answeredcount:       String(answeredCount + 1),
+    totalcount:          String(totalCount),
+    currentquestionid:   currentQuestionId,
+    currentquestiontext: currentQuestionText,
+    answer,
+    scoresjson:          JSON.stringify(currentScores),
+    companycontext:      companyContext ?? '',
+    historytext:         historyText,
+    remaining:           remaining || '(none — this is the last question)',
+  }
+}
+
+/**
+ * Builds the user message for the single-LLM benchmark turn (Anthropic mode).
  */
 export function buildSingleLlmUserMessage(input: BenchmarkTurnInput): string {
   const {

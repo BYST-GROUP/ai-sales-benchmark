@@ -15,7 +15,15 @@ export interface LLMCallInput {
    */
   promptId?: string
 
-  /** The user turn message content. */
+  /**
+   * OpenAI mode: template variable values to fill `{{variable}}` placeholders
+   * defined in the stored prompt. When provided, `userMessage` can be empty.
+   * Anthropic mode: ignored (context is embedded in userMessage directly).
+   */
+  variables?: Record<string, string>
+
+  /** The user turn message content. For Anthropic this carries all context;
+   *  for OpenAI it may be empty when variables handle all context. */
   userMessage: string
 
   /** Max tokens for the response. Defaults vary per client. */

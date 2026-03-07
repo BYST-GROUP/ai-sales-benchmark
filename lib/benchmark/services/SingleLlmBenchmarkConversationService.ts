@@ -1,5 +1,5 @@
 import { BenchmarkConversationService, BenchmarkTurnInput, BenchmarkTurnOutput } from '@/lib/benchmark/types'
-import { SINGLE_LLM_SYSTEM_PROMPT, buildSingleLlmUserMessage } from '@/lib/benchmark/prompts/singleLlmPrompt'
+import { SINGLE_LLM_SYSTEM_PROMPT, buildSingleLlmUserMessage, buildSingleLlmVariables } from '@/lib/benchmark/prompts/singleLlmPrompt'
 import { appendLog } from '@/lib/logger'
 import { QUESTION_MAP } from '@/lib/questions'
 import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
@@ -17,13 +17,17 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
   async processAnswer(input: BenchmarkTurnInput): Promise<BenchmarkTurnOutput> {
     const { currentQuestionId, sessionId, answer } = input
 
+    // Anthropic: full context embedded in userMessage text
+    // OpenAI: context passed as template variables to fill {{placeholder}} slots
     const userMessage = buildSingleLlmUserMessage(input)
+    const variables = buildSingleLlmVariables(input)
 
     const { text, usage } = await getLLMClient().complete({
       systemPrompt: SINGLE_LLM_SYSTEM_PROMPT,
       promptId: OPENAI_PROMPT_IDS.singleLlm,
       userMessage,
-      maxTokens: 512,
+      variables,
+      maxTokens: 2048, // reasoning models need headroom for thinking + JSON output
     })
 
     let parsed: SingleLlmResponse | null = null

@@ -13,7 +13,7 @@ function stripMarkdownCodeFence(text: string): string {
 }
 
 export class OpenAILLMClient implements LLMClient {
-  async complete({ promptId, userMessage, maxTokens = 1024 }: LLMCallInput): Promise<LLMCallOutput> {
+  async complete({ promptId, userMessage, variables, maxTokens = 1024 }: LLMCallInput): Promise<LLMCallOutput> {
     if (!promptId) {
       throw new Error(
         '[OpenAILLMClient] No promptId provided. Set the corresponding OPENAI_*_PROMPT_ID env var.',
@@ -26,8 +26,12 @@ export class OpenAILLMClient implements LLMClient {
     // The model and its configuration (including reasoning settings) are defined
     // in the stored prompt on the OpenAI platform — we do not specify a model here
     // so the prompt's own configuration takes precedence and no parameter conflicts occur.
+    // When variables are provided they fill {{placeholder}} slots in the stored prompt template.
     const response = await openai.responses.create({
-      prompt: { id: promptId },
+      prompt: {
+        id: promptId,
+        ...(variables ? { variables } : {}),
+      },
       input: userMessage,
       max_output_tokens: maxTokens,
     } as Parameters<typeof openai.responses.create>[0])
