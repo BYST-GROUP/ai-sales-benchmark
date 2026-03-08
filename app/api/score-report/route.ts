@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
+import { getLLMClient, OPENAI_PROMPT_IDS, LLM_PROVIDER } from '@/lib/llm'
+import { AnthropicLLMClient } from '@/lib/llm/AnthropicLLMClient'
 import { appendLog } from '@/lib/logger'
 import {
   REPORT_SYSTEM_PROMPT,
@@ -24,13 +25,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'conversation is required' }, { status: 400 })
     }
 
-    const userMessage   = buildReportUserMessage(companyContext, conversation)
-    const variables     = buildReportVariables(companyContext, conversation)
+    const userMessage = buildReportUserMessage(companyContext, conversation)
+    const variables   = buildReportVariables(companyContext, conversation)
 
-    const { text, usage } = await getLLMClient().complete({
+    // Use OpenAI stored prompt if configured; otherwise fall back to Anthropic
+    // with the inline REPORT_SYSTEM_PROMPT (no stored prompt required)
+    const hasOpenAIPrompt = LLM_PROVIDER === 'openai' && !!OPENAI_PROMPT_IDS.scoreReport
+    const client = hasOpenAIPrompt ? getLLMClient() : new AnthropicLLMClient()
+
+    const { text, usage } = await client.complete({
       systemPrompt: REPORT_SYSTEM_PROMPT,
-      promptId:     OPENAI_PROMPT_IDS.scoreReport,
-      variables,
+      promptId:     hasOpenAIPrompt ? OPENAI_PROMPT_IDS.scoreReport : undefined,
+      variables:    hasOpenAIPrompt ? variables : undefined,
       userMessage,
       maxTokens:    1024,
     })
