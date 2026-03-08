@@ -1,5 +1,31 @@
 import { ACTIVE_QUESTION_IDS, ALL_QUESTION_IDS } from './questions'
 
+// ─── Report (LLM-generated, replaces hardcoded results-content.ts) ───────────
+
+export interface ImpactStat {
+  label: string
+  value: string
+}
+
+export interface BenchmarkReport {
+  pillarScores: { pillar1: number; pillar2: number; pillar3: number }
+  totalScore: number
+  maturityLabel: string
+  maturityStage: string
+  currentStage: {
+    whatYoureDoing: string
+    whatYoureExperiencing: string
+  }
+  nextStage: {
+    title: string
+    whatItLooksLike: string
+    whyItMatters: string
+    impactStats: ImpactStat[]
+  } | null
+}
+
+// ─── Benchmark state (tracks progress during the interview) ──────────────────
+
 export interface BenchmarkState {
   answers: Record<string, string>
   scores: Record<string, number>

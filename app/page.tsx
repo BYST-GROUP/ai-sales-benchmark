@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { ACTIVE_QUESTIONS, ACTIVE_QUESTION_IDS, QUESTION_MAP } from '@/lib/questions'
-import { BenchmarkState, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
+import { BenchmarkState, BenchmarkReport, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
 import { processBenchmarkTurn, getSkippedQuestions } from '@/lib/benchmark-scoring'
 import { getStageTransition } from '@/lib/benchmark/stageTransitions'
 import type { ConversationTurn } from '@/lib/benchmark/types'
-import { MaturityLabel, CURRENT_STAGE_CONTENT, NEXT_STAGE_CONTENT } from '@/lib/results-content'
+import type { MaturityLabel } from '@/lib/results-content'
 import MaturityCurveChart from '@/components/MaturityCurveChart'
 import { domainFromSlug, slugFromDomain } from '@/lib/slug'
 
@@ -63,6 +63,7 @@ function HomeContent() {
 
   // Benchmark state
   const [benchmarkState, setBenchmarkState] = useState<BenchmarkState>(createInitialBenchmarkState())
+  const [benchmarkReport, setBenchmarkReport] = useState<BenchmarkReport | null>(null)
   const [benchmarkPhase, setBenchmarkPhase] = useState<'idle' | 'questioning' | 'complete'>('idle')
   const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(null)
   const [isBenchmarkLoading, setIsBenchmarkLoading] = useState(false)
@@ -422,6 +423,15 @@ function HomeContent() {
         // Benchmark complete
         setBenchmarkPhase('complete')
         setCurrentQuestionId(null)
+
+        // Build the conversation payload for the report LLM call
+        const allScores = updatedState.scores
+        const reportConversation = Object.entries(updatedState.answers).map(([questionId, answer]) => ({
+          questionId,
+          answer,
+          score: allScores[questionId] ?? 2,
+        }))
+
         fetch('/api/log', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -435,12 +445,29 @@ function HomeContent() {
             scores: updatedState.scores,
           }),
         }).catch(() => {})
+
         const closingText = output.message
           ? output.message
           : "That covers everything — let me put your results together."
+
         streamAiMessage(closingText, () => {
           window.history.pushState({}, '', `/benchmark/session/${sessionIdRef.current}`)
-          setTimeout(() => setPhase('results'), 600)
+          // Fetch the LLM-generated report in the background; show results whether or not it succeeds
+          fetch('/api/score-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: sessionIdRef.current,
+              companyContext: companyContextRef.current || undefined,
+              conversation: reportConversation,
+            }),
+          })
+            .then(r => r.json())
+            .then(({ report }: { report?: BenchmarkReport }) => {
+              if (report) setBenchmarkReport(report)
+            })
+            .catch(() => {})
+            .finally(() => setTimeout(() => setPhase('results'), 100))
         })
       } else if (output.message) {
         // ── Single-LLM mode: stream the AI-generated message (ack + transition + question) ──
@@ -980,19 +1007,25 @@ function HomeContent() {
           <div className="mx-auto max-w-2xl flex flex-col gap-6">
 
             {/* 1 — Overall score */}
-            <div className="border border-border rounded-xl p-8 flex flex-col items-center text-center gap-3 bg-card">
-              <p className="text-xs tracking-widest uppercase text-muted-foreground">Overall AI Maturity</p>
-              <div className="text-7xl font-display font-semibold text-primary leading-none py-2">
-                {benchmarkState.totalScore}
-              </div>
-              <p className="text-xl font-display font-semibold text-white">{benchmarkState.maturityLabel}</p>
-            </div>
+            {(() => {
+              const score = benchmarkReport?.totalScore ?? benchmarkState.totalScore
+              const label = benchmarkReport?.maturityLabel ?? benchmarkState.maturityLabel
+              return (
+                <div className="border border-border rounded-xl p-8 flex flex-col items-center text-center gap-3 bg-card">
+                  <p className="text-xs tracking-widest uppercase text-muted-foreground">Overall AI Maturity</p>
+                  <div className="text-7xl font-display font-semibold text-primary leading-none py-2">
+                    {score}
+                  </div>
+                  <p className="text-xl font-display font-semibold text-white">{label}</p>
+                </div>
+              )
+            })()}
 
-            {/* 2 — Maturity curve (moved here) */}
+            {/* 2 — Maturity curve */}
             <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
               <p className="text-xs tracking-widest uppercase text-muted-foreground">AI Maturity Curve</p>
-              {benchmarkState.maturityLabel && (
-                <MaturityCurveChart maturityLabel={benchmarkState.maturityLabel as MaturityLabel} />
+              {(benchmarkReport?.maturityLabel ?? benchmarkState.maturityLabel) && (
+                <MaturityCurveChart maturityLabel={(benchmarkReport?.maturityLabel ?? benchmarkState.maturityLabel) as MaturityLabel} />
               )}
             </div>
 
@@ -1001,9 +1034,9 @@ function HomeContent() {
               <div className="grid grid-cols-3 gap-3">
                 {(
                   [
-                    { label: 'AE Systems', score: benchmarkState.pillarScores.pillar1 },
-                    { label: 'Leadership Systems', score: benchmarkState.pillarScores.pillar2 },
-                    { label: 'Enablement', score: benchmarkState.pillarScores.pillar3 },
+                    { label: 'AE Systems', score: benchmarkReport?.pillarScores.pillar1 ?? benchmarkState.pillarScores.pillar1 },
+                    { label: 'Leadership Systems', score: benchmarkReport?.pillarScores.pillar2 ?? benchmarkState.pillarScores.pillar2 },
+                    { label: 'Enablement', score: benchmarkReport?.pillarScores.pillar3 ?? benchmarkState.pillarScores.pillar3 },
                   ] as const
                 ).map(({ label, score }) => (
                   <div key={label} className="border border-border rounded-xl p-5 flex flex-col items-center gap-2 bg-card">
@@ -1020,74 +1053,88 @@ function HomeContent() {
               </div>
             )}
 
-            {/* 4 — What this means for you (current stage) */}
-            {benchmarkState.maturityLabel && (() => {
-              const label = benchmarkState.maturityLabel as MaturityLabel
-              const content = CURRENT_STAGE_CONTENT[label]
-              if (!content) return null
-              return (
-                <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
-                  <p className="text-xs tracking-widest uppercase text-muted-foreground">What This Means For You</p>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-xs font-medium text-primary uppercase tracking-wider">What you&apos;re doing</p>
-                      <p className="text-sm text-secondary-foreground leading-relaxed">{content.whatYoureDoing}</p>
-                    </div>
-                    <div className="h-px bg-border" />
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-xs font-medium text-primary uppercase tracking-wider">What you&apos;re experiencing</p>
-                      <p className="text-sm text-secondary-foreground leading-relaxed">{content.whatYoureExperiencing}</p>
-                    </div>
+            {/* 4 — What this means for you (LLM-generated, personalised to their answers) */}
+            {benchmarkReport?.currentStage ? (
+              <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
+                <p className="text-xs tracking-widest uppercase text-muted-foreground">What This Means For You</p>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wider">What you&apos;re doing</p>
+                    <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.currentStage.whatYoureDoing}</p>
+                  </div>
+                  <div className="h-px bg-border" />
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wider">What you&apos;re experiencing</p>
+                    <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.currentStage.whatYoureExperiencing}</p>
                   </div>
                 </div>
-              )
-            })()}
+              </div>
+            ) : (
+              // Loading skeleton while LLM report is being generated
+              <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4 animate-pulse">
+                <div className="h-3 w-40 bg-border rounded" />
+                <div className="flex flex-col gap-3">
+                  <div className="h-3 w-3/4 bg-border rounded" />
+                  <div className="h-3 w-full bg-border rounded" />
+                  <div className="h-3 w-5/6 bg-border rounded" />
+                </div>
+              </div>
+            )}
 
-            {/* 5 — What the next stage looks like */}
-            {benchmarkState.maturityLabel && (() => {
-              const label = benchmarkState.maturityLabel as MaturityLabel
-              const next = NEXT_STAGE_CONTENT[label]
-              if (!next) {
-                return (
-                  <div className="border border-primary/20 rounded-xl p-6 bg-primary/5 flex flex-col gap-3">
-                    <p className="text-xs tracking-widest uppercase text-primary">You&apos;re at the Top</p>
-                    <p className="text-sm text-secondary-foreground leading-relaxed">
-                      You&apos;re operating at the highest level of AI maturity. The focus now is staying ahead — continuously retraining your systems, embedding new capabilities, and using your proprietary data as a competitive moat.
-                    </p>
-                  </div>
-                )
-              }
-              return (
-                <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <p className="text-xs tracking-widest uppercase text-muted-foreground">The Next Stage</p>
-                    <span className="text-xs font-medium text-primary border border-primary/30 rounded-full px-2.5 py-0.5">
-                      {next.title}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-xs font-medium text-primary uppercase tracking-wider">What it looks like</p>
-                      <p className="text-sm text-secondary-foreground leading-relaxed">{next.whatItLooksLike}</p>
-                    </div>
-                    <div className="h-px bg-border" />
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-xs font-medium text-primary uppercase tracking-wider">Why it matters</p>
-                      <p className="text-sm text-secondary-foreground leading-relaxed">{next.whyItMatters}</p>
-                    </div>
-                    <div className="h-px bg-border" />
-                    <div className="grid grid-cols-2 gap-3">
-                      {next.impactStats.map(stat => (
-                        <div key={stat.label} className="bg-background border border-border rounded-lg p-4 flex flex-col gap-1">
-                          <p className="text-lg font-display font-semibold text-primary">{stat.value}</p>
-                          <p className="text-xs text-muted-foreground">{stat.label}</p>
-                        </div>
-                      ))}
-                    </div>
+            {/* 5 — What the next stage looks like (LLM-generated) */}
+            {benchmarkReport === null ? (
+              // Loading skeleton while LLM report is being generated
+              <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4 animate-pulse">
+                <div className="h-3 w-32 bg-border rounded" />
+                <div className="flex flex-col gap-3">
+                  <div className="h-3 w-full bg-border rounded" />
+                  <div className="h-3 w-4/5 bg-border rounded" />
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="h-16 bg-border rounded-lg" />
+                    <div className="h-16 bg-border rounded-lg" />
+                    <div className="h-16 bg-border rounded-lg" />
+                    <div className="h-16 bg-border rounded-lg" />
                   </div>
                 </div>
-              )
-            })()}
+              </div>
+            ) : benchmarkReport.nextStage === null ? (
+              // AI Native — no next stage
+              <div className="border border-primary/20 rounded-xl p-6 bg-primary/5 flex flex-col gap-3">
+                <p className="text-xs tracking-widest uppercase text-primary">You&apos;re at the Top</p>
+                <p className="text-sm text-secondary-foreground leading-relaxed">
+                  You&apos;re operating at the highest level of AI maturity. The focus now is staying ahead — continuously retraining your systems, embedding new capabilities, and using your proprietary data as a competitive moat.
+                </p>
+              </div>
+            ) : (
+              <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <p className="text-xs tracking-widest uppercase text-muted-foreground">The Next Stage</p>
+                  <span className="text-xs font-medium text-primary border border-primary/30 rounded-full px-2.5 py-0.5">
+                    {benchmarkReport.nextStage.title}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wider">What it looks like</p>
+                    <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.nextStage.whatItLooksLike}</p>
+                  </div>
+                  <div className="h-px bg-border" />
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wider">Why it matters</p>
+                    <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.nextStage.whyItMatters}</p>
+                  </div>
+                  <div className="h-px bg-border" />
+                  <div className="grid grid-cols-2 gap-3">
+                    {benchmarkReport.nextStage.impactStats.map(stat => (
+                      <div key={stat.label} className="bg-background border border-border rounded-lg p-4 flex flex-col gap-1">
+                        <p className="text-lg font-display font-semibold text-primary">{stat.value}</p>
+                        <p className="text-xs text-muted-foreground">{stat.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 6 — CTA */}
             <div className="border border-primary/30 rounded-xl p-8 flex flex-col items-center text-center gap-4 bg-primary/5">

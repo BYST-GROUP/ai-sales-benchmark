@@ -21,11 +21,13 @@ export const LLM_PROVIDER: 'anthropic' | 'openai' =
  */
 export const OPENAI_PROMPT_IDS = {
   /** /api/enrich — company enrichment + opening message */
-  enrich:    process.env.OPENAI_ENRICH_PROMPT_ID       ?? '',
+  enrich:      process.env.OPENAI_ENRICH_PROMPT_ID          ?? '',
   /** Single-LLM benchmark turn: scoring + acknowledgment + next question */
-  singleLlm: process.env.OPENAI_SINGLE_LLM_PROMPT_ID   ?? '',
+  singleLlm:   process.env.OPENAI_SINGLE_LLM_PROMPT_ID      ?? '',
   /** Multi-LLM benchmark turn: scoring only */
-  multiLlm:  process.env.OPENAI_MULTI_LLM_PROMPT_ID    ?? '',
-  /** /api/score — standalone scoring route */
-  score:     process.env.OPENAI_SCORE_PROMPT_ID         ?? '',
+  multiLlm:    process.env.OPENAI_MULTI_LLM_PROMPT_ID       ?? '',
+  /** /api/score — standalone per-question scoring (multi-LLM mode) */
+  score:       process.env.OPENAI_SCORE_PROMPT_ID            ?? '',
+  /** /api/score-report — final report generation after all questions answered */
+  scoreReport: process.env.OPENAI_SCORE_REPORT_PROMPT_ID     ?? '',
 }
