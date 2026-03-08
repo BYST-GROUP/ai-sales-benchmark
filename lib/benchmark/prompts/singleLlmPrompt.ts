@@ -93,6 +93,63 @@ Return ONLY a valid JSON object:
 No text outside the JSON object.`
 
 /**
+ * Builds the user message for the START turn (Anthropic mode).
+ * Used when currentQuestionId === 'START' — the user has just confirmed/corrected
+ * company info and we want the LLM to open the benchmark with Q1.
+ */
+export function buildStartUserMessage(input: BenchmarkTurnInput): string {
+  const { answer, companyContext } = input
+
+  const allQuestions = ACTIVE_QUESTION_IDS
+    .map(id => `${id}: ${QUESTION_MAP[id]?.text ?? id}`)
+    .join('\n')
+
+  return `${companyContext ? `Company context:\n${companyContext}\n\n` : ''}The user has just confirmed (or corrected) the company information above.
+Their response: "${answer}"
+
+This is the START of the benchmark — no questions have been asked yet.
+Please open the benchmark by asking the first question (Q1). Do NOT include an acknowledgment phrase since an intro message has already been shown.
+
+All benchmark questions in order:
+${allQuestions}
+
+Return JSON:
+{
+  "scores": {},
+  "acknowledgment": null,
+  "stage_transition": null,
+  "next_question": "<full Q1 question text>",
+  "next_question_id": "Q1",
+  "options": null
+}`
+}
+
+/**
+ * Builds the template variable map for the OpenAI stored prompt — START turn.
+ * Variable names match the {{placeholder}} slots defined in the stored prompt.
+ */
+export function buildStartVariables(input: BenchmarkTurnInput): Record<string, string> {
+  const { answer, companyContext } = input
+  const totalCount = ACTIVE_QUESTION_IDS.length
+
+  const allQuestions = ACTIVE_QUESTION_IDS
+    .map(id => `${id}: ${QUESTION_MAP[id]?.text ?? id}`)
+    .join('\n')
+
+  return {
+    answeredcount:       '0',
+    totalcount:          String(totalCount),
+    currentquestionid:   'START',
+    currentquestiontext: 'N/A — benchmark has not started yet',
+    answer,
+    scoresjson:          '{}',
+    companycontext:      companyContext ?? '',
+    historytext:         '(none yet)',
+    remaining:           allQuestions,
+  }
+}
+
+/**
  * Builds the template variable map for the OpenAI stored prompt.
  * Variable names match the {{placeholder}} slots defined in the stored prompt exactly.
  */

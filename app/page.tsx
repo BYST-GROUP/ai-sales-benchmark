@@ -98,6 +98,8 @@ function HomeContent() {
   const conversationHistoryRef = useRef<ConversationTurn[]>([])
   // OpenAI Conversations API: response ID from the last benchmark turn, used to chain turns
   const openAiResponseIdRef = useRef<string | undefined>(undefined)
+  // Stores what the user said in response to the enrichment message (used to seed the START LLM call)
+  const enrichmentAnswerRef = useRef<string>('Looks good')
 
   // Cleanup on unmount
   useEffect(() => {
@@ -308,6 +310,7 @@ function HomeContent() {
   }, [messages, isTyping, showOptions, showFinalTyping, isBenchmarkLoading, streamingMessage])
 
   function handleLooksGood() {
+    enrichmentAnswerRef.current = 'Looks good — the company information is accurate.'
     setMessages(prev => [...prev, { role: 'user', content: 'Looks good ✓' }])
     setShowOptions(false)
     setShowFinalTyping(true)
@@ -318,6 +321,7 @@ function HomeContent() {
     e.preventDefault()
     const trimmed = correction.trim()
     if (!trimmed) return
+    enrichmentAnswerRef.current = trimmed
     setMessages(prev => [...prev, { role: 'user', content: trimmed }])
     setCorrection('')
     setShowOptions(false)
@@ -325,16 +329,44 @@ function HomeContent() {
     setHasUserResponded(true)
   }
 
-  // When "Great, let's begin..." animation ends, stream intro then Q1
+  // When "Great, let's begin..." animation ends, stream intro then ask LLM for Q1
   useEffect(() => {
     if (!showFinalTyping) return
     const t = setTimeout(() => {
       setShowFinalTyping(false)
       streamAiMessage(INTRO_MESSAGE, () => {
-        streamAiMessage(ACTIVE_QUESTIONS[0].text, () => {
-          setCurrentQuestionId(ACTIVE_QUESTIONS[0].id)
-          setBenchmarkPhase('questioning')
+        // Call the LLM with a special 'START' turn to get the first question + options.
+        // This allows the LLM to personalize Q1 based on company context and the
+        // user's enrichment response. Falls back to hardcoded Q1 on error.
+        setIsBenchmarkLoading(true)
+        processBenchmarkTurn({
+          currentQuestionId: 'START',
+          answer: enrichmentAnswerRef.current,
+          remainingQuestions: ACTIVE_QUESTION_IDS,
+          sessionId: sessionIdRef.current,
+          companyContext: companyContextRef.current || undefined,
+          conversationHistory: [],
+          currentScores: {},
         })
+          .then(output => {
+            setIsBenchmarkLoading(false)
+            // Chain subsequent turns from this response
+            if (output.responseId) openAiResponseIdRef.current = output.responseId
+            if (output.options) setCurrentOptions(output.options)
+            const questionText = output.message ?? ACTIVE_QUESTIONS[0].text
+            streamAiMessage(questionText, () => {
+              setCurrentQuestionId(output.nextQuestionId ?? ACTIVE_QUESTIONS[0].id)
+              setBenchmarkPhase('questioning')
+            })
+          })
+          .catch(() => {
+            // Fallback: use hardcoded Q1 if the LLM call fails
+            setIsBenchmarkLoading(false)
+            streamAiMessage(ACTIVE_QUESTIONS[0].text, () => {
+              setCurrentQuestionId(ACTIVE_QUESTIONS[0].id)
+              setBenchmarkPhase('questioning')
+            })
+          })
       })
     }, 1800)
     return () => clearTimeout(t)
