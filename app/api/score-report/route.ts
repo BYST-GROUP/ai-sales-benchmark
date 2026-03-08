@@ -55,7 +55,10 @@ export async function POST(req: NextRequest) {
 
     if (!report) {
       console.error('[score-report] failed to parse LLM response:', text)
-      return NextResponse.json({ error: 'Failed to parse report from LLM' }, { status: 502 })
+      return NextResponse.json({
+        error: 'Failed to parse report from LLM',
+        _raw: text.slice(0, 2000), // truncated for safety
+      }, { status: 502 })
     }
 
     await appendLog({
