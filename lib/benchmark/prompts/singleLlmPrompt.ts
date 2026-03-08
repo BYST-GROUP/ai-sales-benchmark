@@ -68,6 +68,7 @@ When moving from Pillar 2 to Pillar 3, include this transition:
 
 - Acknowledgment: 1–2 short sentences max. Be specific to what they said. Never generic.
 - Stage transition: Only when crossing pillar boundaries. Use exact text above.
+- Insight: Optional. 1–3 sentences. A punchy, data-backed observation that bridges their answer to the next question. Raises the stakes. Not required for every question — use it when it genuinely adds context.
 - Next question: State it clearly and directly. No preamble.
 - Options: Include the exact options from the list above when the next question has them.
 - Be conversational but efficient — no long paragraphs.
@@ -79,6 +80,7 @@ Return ONLY a valid JSON object:
   "scores": { "Q1": 3, "Q2": 2 },
   "acknowledgment": "Short acknowledgment of what they said.",
   "stage_transition": "Transition message if crossing pillar boundary, or null",
+  "insight": "A short data-backed insight before the next question, or null",
   "next_question": "The full text of the next question to ask, or null if benchmark is complete",
   "next_question_id": "Q2",
   "options": ["option 1", "option 2", "option 3"]
@@ -86,6 +88,7 @@ Return ONLY a valid JSON object:
 
 - "scores": include ALL question IDs answered in this response (may be multiple if Q1 covered others)
 - "stage_transition": string or null
+- "insight": string or null
 - "next_question": string or null (null only when all questions answered)
 - "next_question_id": string or null
 - "options": array of strings, or null if next question is free-form

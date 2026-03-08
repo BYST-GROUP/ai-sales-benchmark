@@ -12,8 +12,9 @@ import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
 
 interface SingleLlmResponse {
   scores: Record<string, number>
-  acknowledgment: string
+  acknowledgment: string | null
   stage_transition: string | null
+  insight: string | null
   next_question: string | null
   next_question_id: string | null
   options: string[] | null
@@ -76,11 +77,12 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       scores[currentQuestionId] = 2
     }
 
-    // Build the display message: acknowledgment + optional transition + next question
+    // Build the display message: acknowledgment → transition → insight → next question
     // For START turns, skip the acknowledgment since the intro message is already shown.
     const parts: string[] = []
     if (!isStart && parsed?.acknowledgment) parts.push(parsed.acknowledgment)
     if (parsed?.stage_transition) parts.push(parsed.stage_transition)
+    if (parsed?.insight) parts.push(parsed.insight)
     if (parsed?.next_question) parts.push(parsed.next_question)
     const displayMessage = parts.join('\n\n') || undefined
 
