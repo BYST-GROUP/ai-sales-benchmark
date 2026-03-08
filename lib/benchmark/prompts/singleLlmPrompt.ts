@@ -167,10 +167,9 @@ export function buildSingleLlmVariables(input: BenchmarkTurnInput): Record<strin
   const answeredCount = ACTIVE_QUESTION_IDS.length - remainingQuestions.length
   const totalCount = ACTIVE_QUESTION_IDS.length
 
-  const remaining = remainingQuestions
-    .filter(id => id !== currentQuestionId)
-    .map(id => `${id}: ${QUESTION_MAP[id]?.text ?? id}`)
-    .join('\n')
+  // Questions answered in previous turns (keys present in currentScores)
+  const answeredIds = Object.keys(currentScores)
+  const answeredText = answeredIds.length > 0 ? answeredIds.join(', ') : '(none yet)'
 
   const historyText = conversationHistory.length > 0
     ? conversationHistory.map(t => `${t.questionId}: ${t.answer}`).join('\n')
@@ -185,7 +184,7 @@ export function buildSingleLlmVariables(input: BenchmarkTurnInput): Record<strin
     scoresjson:          JSON.stringify(currentScores),
     companycontext:      companyContext ?? '',
     historytext:         historyText,
-    remaining:           remaining || '(none — this is the last question)',
+    answered:            answeredText,
   }
 }
 
@@ -207,12 +206,11 @@ export function buildSingleLlmUserMessage(input: BenchmarkTurnInput): string {
   const answeredCount = ACTIVE_QUESTION_IDS.length - remainingQuestions.length
   const totalCount = ACTIVE_QUESTION_IDS.length
 
-  const remaining = remainingQuestions
-    .filter(id => id !== currentQuestionId)
-    .map(id => `${id}: ${QUESTION_MAP[id]?.text ?? id}`)
-    .join('\n')
-
   const scoresJson = JSON.stringify(currentScores)
+
+  // Questions answered in previous turns (keys present in currentScores)
+  const answeredIds = Object.keys(currentScores)
+  const answeredText = answeredIds.length > 0 ? answeredIds.join(', ') : '(none yet)'
 
   const historyText = conversationHistory.length > 0
     ? conversationHistory
@@ -232,8 +230,7 @@ Current question ID: ${currentQuestionId}
 
 User's answer: "${answer}"
 
-Remaining unanswered questions:
-${remaining || '(none — this is the last question)'}
+Answered questions: ${answeredText}
 
 Score this answer, acknowledge it briefly, apply any stage transition, and ask the next question. Return JSON only.`
 }
