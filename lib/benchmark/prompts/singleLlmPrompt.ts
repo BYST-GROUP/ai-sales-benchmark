@@ -184,7 +184,7 @@ export function buildSingleLlmVariables(input: BenchmarkTurnInput): Record<strin
     scoresjson:          JSON.stringify(currentScores),
     companycontext:      companyContext ?? '',
     historytext:         historyText,
-    answered:            answeredText,
+    remaining:           answeredText,
   }
 }
 
