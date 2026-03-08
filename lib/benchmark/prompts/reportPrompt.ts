@@ -107,10 +107,15 @@ Generate the full personalised assessment report.`
  * Builds the template variable map for the OpenAI stored prompt — report call.
  * Variable names match the {{placeholder}} slots defined in the stored prompt.
  *
- * Example stored prompt template variables to define in OpenAI Prompt Management:
+ * Core variables:
  *   {{companycontext}}      — enriched company context string
- *   {{conversationhistory}} — formatted Q&A + scores
+ *   {{conversationhistory}} — formatted Q&A + scores (alias: {{historytext}})
+ *   {{historytext}}         — same as conversationhistory (for prompt compatibility)
  *   {{scoresjson}}          — raw scores as JSON object
+ *
+ * Stub variables (empty — included so prompts that reference them don't error):
+ *   {{answeredcount}}, {{totalcount}}, {{currentquestionid}},
+ *   {{currentquestiontext}}, {{answer}}, {{remaining}}
  */
 export function buildReportVariables(
   companyContext: string | null | undefined,
@@ -128,8 +133,17 @@ export function buildReportVariables(
   )
 
   return {
-    companycontext:      companyContext ?? '',
-    conversationhistory: conversationHistory,
-    scoresjson:          scoresJson,
+    companycontext:       companyContext ?? '',
+    conversationhistory:  conversationHistory,
+    historytext:          conversationHistory,   // alias — same content, different placeholder name
+    scoresjson:           scoresJson,
+    // Stubs for variables present in other prompts — prevents 400 errors if
+    // OPENAI_SCORE_REPORT_PROMPT_ID points to a prompt that shares these slots
+    answeredcount:        String(conversation.length),
+    totalcount:           String(conversation.length),
+    currentquestionid:    'REPORT',
+    currentquestiontext:  '',
+    answer:               '',
+    remaining:            '(none)',
   }
 }
