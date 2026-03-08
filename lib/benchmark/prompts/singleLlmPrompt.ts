@@ -132,10 +132,6 @@ export function buildStartVariables(input: BenchmarkTurnInput): Record<string, s
   const { answer, companyContext } = input
   const totalCount = ACTIVE_QUESTION_IDS.length
 
-  const allQuestions = ACTIVE_QUESTION_IDS
-    .map(id => `${id}: ${QUESTION_MAP[id]?.text ?? id}`)
-    .join('\n')
-
   return {
     answeredcount:       '0',
     totalcount:          String(totalCount),
@@ -145,7 +141,8 @@ export function buildStartVariables(input: BenchmarkTurnInput): Record<string, s
     scoresjson:          '{}',
     companycontext:      companyContext ?? '',
     historytext:         '(none yet)',
-    remaining:           allQuestions,
+    // All questions are unanswered at the start — IDs only, no content
+    remaining:           ACTIVE_QUESTION_IDS.join(', '),
   }
 }
 
@@ -167,13 +164,13 @@ export function buildSingleLlmVariables(input: BenchmarkTurnInput): Record<strin
   const answeredCount = ACTIVE_QUESTION_IDS.length - remainingQuestions.length
   const totalCount = ACTIVE_QUESTION_IDS.length
 
-  // Questions answered in previous turns (keys present in currentScores)
-  const answeredIds = Object.keys(currentScores)
-  const answeredText = answeredIds.length > 0 ? answeredIds.join(', ') : '(none yet)'
-
   const historyText = conversationHistory.length > 0
     ? conversationHistory.map(t => `${t.questionId}: ${t.answer}`).join('\n')
     : '(none yet)'
+
+  // Remaining = questions not yet answered after this turn (current question is being answered now)
+  const remainingAfterThis = remainingQuestions.filter(id => id !== currentQuestionId)
+  const remainingText = remainingAfterThis.length > 0 ? remainingAfterThis.join(', ') : '(none)'
 
   return {
     answeredcount:       String(answeredCount + 1),
@@ -184,7 +181,8 @@ export function buildSingleLlmVariables(input: BenchmarkTurnInput): Record<strin
     scoresjson:          JSON.stringify(currentScores),
     companycontext:      companyContext ?? '',
     historytext:         historyText,
-    remaining:           answeredText,
+    // IDs only — no question content
+    remaining:           remainingText,
   }
 }
 
@@ -208,15 +206,15 @@ export function buildSingleLlmUserMessage(input: BenchmarkTurnInput): string {
 
   const scoresJson = JSON.stringify(currentScores)
 
-  // Questions answered in previous turns (keys present in currentScores)
-  const answeredIds = Object.keys(currentScores)
-  const answeredText = answeredIds.length > 0 ? answeredIds.join(', ') : '(none yet)'
-
   const historyText = conversationHistory.length > 0
     ? conversationHistory
         .map(t => `${t.questionId}: ${t.answer}`)
         .join('\n')
     : '(none yet)'
+
+  // Remaining = unanswered question IDs after this turn (current question is being answered now)
+  const remainingAfterThis = remainingQuestions.filter(id => id !== currentQuestionId)
+  const remainingText = remainingAfterThis.length > 0 ? remainingAfterThis.join(', ') : '(none)'
 
   return `${companyContext ? `Company context: ${companyContext}\n\n` : ''}Progress: ${answeredCount + 1}/${totalCount} questions
 
@@ -230,7 +228,7 @@ Current question ID: ${currentQuestionId}
 
 User's answer: "${answer}"
 
-Answered questions: ${answeredText}
+Remaining questions: ${remainingText}
 
 Score this answer, acknowledge it briefly, apply any stage transition, and ask the next question. Return JSON only.`
 }
