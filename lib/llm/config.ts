@@ -11,16 +11,35 @@ export const LLM_PROVIDER: 'anthropic' | 'openai' =
   process.env.LLM_PROVIDER === 'openai' ? 'openai' : 'anthropic'
 
 /**
+ * Optional prompt version suffix applied to all OpenAI stored prompt IDs.
+ *
+ * OpenAI supports versioning via `<promptId>:<version>` syntax.
+ * When OPENAI_PROMPT_VERSION is set, it is appended to every prompt ID.
+ *
+ * Examples:
+ *   OPENAI_PROMPT_VERSION=2        → pmpt_xxx:2
+ *   OPENAI_PROMPT_VERSION=latest   → pmpt_xxx:latest  (same as omitting the version)
+ *   (unset)                        → pmpt_xxx          (OpenAI defaults to latest)
+ */
+const OPENAI_PROMPT_VERSION = process.env.OPENAI_PROMPT_VERSION ?? ''
+
+function withVersion(id: string): string {
+  if (!id || !OPENAI_PROMPT_VERSION) return id
+  return `${id}:${OPENAI_PROMPT_VERSION}`
+}
+
+/**
  * Stored prompt IDs for each LLM call site (OpenAI Prompt Management).
  * Only required when LLM_PROVIDER=openai.
+ * Version suffix is applied automatically via OPENAI_PROMPT_VERSION.
  */
 export const OPENAI_PROMPT_IDS = {
   /** /api/enrich — company enrichment + opening message */
-  enrich:    process.env.OPENAI_ENRICH_PROMPT_ID       ?? '',
+  enrich:    withVersion(process.env.OPENAI_ENRICH_PROMPT_ID       ?? ''),
   /** Single-LLM benchmark turn: scoring + acknowledgment + next question */
-  singleLlm: process.env.OPENAI_SINGLE_LLM_PROMPT_ID   ?? '',
+  singleLlm: withVersion(process.env.OPENAI_SINGLE_LLM_PROMPT_ID   ?? ''),
   /** Multi-LLM benchmark turn: scoring only */
-  multiLlm:  process.env.OPENAI_MULTI_LLM_PROMPT_ID    ?? '',
+  multiLlm:  withVersion(process.env.OPENAI_MULTI_LLM_PROMPT_ID    ?? ''),
   /** /api/score — standalone scoring route */
-  score:     process.env.OPENAI_SCORE_PROMPT_ID         ?? '',
+  score:     withVersion(process.env.OPENAI_SCORE_PROMPT_ID         ?? ''),
 }
