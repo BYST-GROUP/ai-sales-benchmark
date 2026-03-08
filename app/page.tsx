@@ -510,10 +510,10 @@ function HomeContent() {
         }`}
       >
         {/* Fixed BYST wordmark — hero only */}
-        <div className="fixed top-6 left-8 z-20 flex flex-col items-start">
+        <a href="https://ai-sales-benchmark.vercel.app/" className="fixed top-6 left-8 z-20 flex flex-col items-start">
           <span className="font-display font-normal text-xl tracking-[0.15em] text-white">BYST</span>
           <span className="mt-1 block h-[2px] w-full bg-[#009e8f]" />
-        </div>
+        </a>
 
         {/* Full-screen hero */}
         <div className="min-h-screen flex items-center justify-center">
@@ -749,10 +749,10 @@ function HomeContent() {
       >
         {/* Header */}
         <header className="flex-shrink-0 h-14 border-b border-border flex items-center px-6">
-          <div className="flex flex-col items-start">
+          <a href="https://ai-sales-benchmark.vercel.app/" className="flex flex-col items-start">
             <span className="font-display font-normal text-xl tracking-[0.15em] text-white">BYST</span>
             <span className="mt-0.5 block h-[2px] w-full bg-[#009e8f]" />
-          </div>
+          </a>
           <span className="ml-auto font-sans text-sm font-normal text-white">Sales Systems Benchmark</span>
         </header>
 
@@ -996,10 +996,10 @@ function HomeContent() {
         }`}
       >
         <header className="flex-shrink-0 h-14 border-b border-border flex items-center px-6">
-          <div className="flex flex-col items-start">
+          <a href="https://ai-sales-benchmark.vercel.app/" className="flex flex-col items-start">
             <span className="font-display font-normal text-xl tracking-[0.15em] text-white">BYST</span>
             <span className="mt-0.5 block h-[2px] w-full bg-[#009e8f]" />
-          </div>
+          </a>
           <span className="ml-auto font-sans text-sm font-normal text-white">Sales Systems Benchmark</span>
         </header>
 
