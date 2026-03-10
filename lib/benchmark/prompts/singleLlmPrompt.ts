@@ -100,18 +100,11 @@ No text outside the JSON object.`
 export function buildStartUserMessage(input: BenchmarkTurnInput): string {
   const { answer, companyContext } = input
 
-  const allQuestions = ACTIVE_QUESTION_IDS
-    .map(id => `${id}: ${QUESTION_MAP[id]?.text ?? id}`)
-    .join('\n')
-
   return `${companyContext ? `Company context:\n${companyContext}\n\n` : ''}The user has just confirmed (or corrected) the company information above.
 Their response: "${answer}"
 
 This is the START of the benchmark — no questions have been asked yet.
-Please open the benchmark by asking the first question (Q1). Do NOT include a question_transition since an intro message has already been shown.
-
-All benchmark questions in order:
-${allQuestions}
+Open the benchmark and ask Q1.
 
 Return JSON:
 {
