@@ -21,7 +21,7 @@ export interface BenchmarkTurnInput {
 
 export interface BenchmarkTurnOutput {
   scores: Record<string, number>
-  /** Single-LLM only: AI-generated response including acknowledgment, transition, and next question */
+  /** Single-LLM only: AI-generated response including insight, transitions, and next question */
   message?: string
   /** Single-LLM only: answer options for the next question */
   options?: string[]
