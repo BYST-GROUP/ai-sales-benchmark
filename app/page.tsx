@@ -25,8 +25,6 @@ const STATUSES = [
   () => 'Almost there...',
 ]
 
-const INTRO_MESSAGE =
-  "Awesome! Let me ask a few questions about your sales operations so we can assess your maturity level with AI sales systems."
 
 // No Suspense wrapper needed — usePathname() doesn't require it
 export default function Home() {
@@ -335,12 +333,11 @@ function HomeContent() {
     if (!showFinalTyping) return
     const t = setTimeout(() => {
       setShowFinalTyping(false)
-      streamAiMessage(INTRO_MESSAGE, () => {
-        // Call the LLM with a special 'START' turn to get the first question + options.
-        // This allows the LLM to personalize Q1 based on company context and the
-        // user's enrichment response. Falls back to hardcoded Q1 on error.
-        setIsBenchmarkLoading(true)
-        processBenchmarkTurn({
+      // Call the LLM with a special 'START' turn to get the first question + options.
+      // This allows the LLM to personalize Q1 based on company context and the
+      // user's enrichment response. Falls back to hardcoded Q1 on error.
+      setIsBenchmarkLoading(true)
+      processBenchmarkTurn({
           currentQuestionId: 'START',
           answer: enrichmentAnswerRef.current,
           remainingQuestions: ACTIVE_QUESTION_IDS,
@@ -368,7 +365,6 @@ function HomeContent() {
               setBenchmarkPhase('questioning')
             })
           })
-      })
     }, 1800)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
