@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { ACTIVE_QUESTIONS, ACTIVE_QUESTION_IDS, QUESTION_MAP } from '@/lib/questions'
 import { BenchmarkState, BenchmarkReport, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
-import { processBenchmarkTurn, getSkippedQuestions } from '@/lib/benchmark-scoring'
-import { getStageTransition } from '@/lib/benchmark/stageTransitions'
+import { processBenchmarkTurn } from '@/lib/benchmark-scoring'
 import type { ConversationTurn } from '@/lib/benchmark/types'
 import type { MaturityLabel } from '@/lib/results-content'
 import MaturityCurveChart from '@/components/MaturityCurveChart'
@@ -395,9 +394,6 @@ function HomeContent() {
       })
 
       const newScores = output.scores
-      const remainingExcludingCurrent = remainingForScoring.filter(id => id !== currentQuestionId)
-      const skipped = getSkippedQuestions(remainingExcludingCurrent, newScores, currentQuestionId)
-
       const updatedState = applyScores(benchmarkState, trimmed, currentQuestionId, newScores)
       setBenchmarkState(updatedState)
 
@@ -466,27 +462,14 @@ function HomeContent() {
             .finally(() => setTimeout(() => setPhase('results'), 100))
         })
       } else if (output.message) {
-        // ── Single-LLM mode: stream the AI-generated message (ack + transition + question) ──
+        // Stream the LLM-generated message, then advance to the next question
         setCurrentOptions(output.options ?? undefined)
         streamAiMessage(output.message, () => setCurrentQuestionId(output.nextQuestionId ?? nextId))
       } else {
-        // ── Multi-LLM mode: compose message from static data + stage transition ──
-        const fromPillar = QUESTION_MAP[currentQuestionId]?.pillar
-        const toPillar = QUESTION_MAP[nextId]?.pillar
-        const transition = getStageTransition(fromPillar, toPillar)
-
-        const nextQuestion = QUESTION_MAP[nextId]
-        let aiText: string
-
-        if (transition) {
-          aiText = transition + '\n\n' + nextQuestion.text
-        } else if (skipped.length > 0) {
-          aiText = `Got it — that covers a few things.\n\n${nextQuestion.text}`
-        } else {
-          aiText = nextQuestion.text
-        }
-
-        streamAiMessage(aiText, () => setCurrentQuestionId(nextId))
+        // LLM returned no message — advance question ID silently so the user can answer
+        console.error('[benchmark] LLM returned no message for turn', currentQuestionId, output)
+        setCurrentOptions(output.options ?? undefined)
+        setCurrentQuestionId(output.nextQuestionId ?? nextId)
       }
     } catch {
       setIsBenchmarkLoading(false)
