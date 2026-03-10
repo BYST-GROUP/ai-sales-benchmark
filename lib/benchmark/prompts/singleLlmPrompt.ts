@@ -221,19 +221,18 @@ export function buildSingleLlmUserMessage(input: BenchmarkTurnInput): string {
   const remainingAfterThis = remainingQuestions.filter(id => id !== currentQuestionId)
   const remainingText = remainingAfterThis.length > 0 ? remainingAfterThis.join(', ') : '(none)'
 
-  return `${companyContext ? `Company context: ${companyContext}\n\n` : ''}Progress: ${answeredCount + 1}/${totalCount} questions
-
+  return `Company context: ${companyContext ?? ''}
+Progress: ${answeredCount + 1} / ${totalCount} questions
 Scores so far: ${scoresJson}
-
-Conversation so far:
-${historyText}
-
-Current question asked: "${currentQuestionText}"
-Current question ID: ${currentQuestionId}
-
+Conversation so far: ${historyText}
+Current question asked: "${currentQuestionText}" Current question ID: ${currentQuestionId}
 User's answer: "${answer}"
-
-Remaining questions: ${remainingText}
-
-Score this answer, acknowledge it briefly, apply any stage transition, and ask the next question. Return JSON only.`
+Remaining unanswered questions: ${remainingText}
+Analyze the user answer.
+Determine how many benchmark dimensions were answered.
+Score all applicable dimensions using the BYST maturity framework.
+Update which questions remain unanswered.
+If this is the first turn, show the benchmark introduction before asking the first question.
+Then generate the next appropriate benchmark question.
+Return JSON only.`
 }
