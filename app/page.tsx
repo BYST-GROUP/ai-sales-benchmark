@@ -350,7 +350,7 @@ function HomeContent() {
             setIsBenchmarkLoading(false)
             // Chain subsequent turns from this response
             if (output.responseId) openAiResponseIdRef.current = output.responseId
-            if (output.options) setCurrentOptions(output.options)
+            setCurrentOptions(output.options ?? undefined)
             const questionText = output.message ?? ACTIVE_QUESTIONS[0].text
             streamAiMessage(questionText, () => {
               setCurrentQuestionId(output.nextQuestionId ?? ACTIVE_QUESTIONS[0].id)
@@ -467,7 +467,7 @@ function HomeContent() {
         })
       } else if (output.message) {
         // ── Single-LLM mode: stream the AI-generated message (ack + transition + question) ──
-        if (output.options) setCurrentOptions(output.options)
+        setCurrentOptions(output.options ?? undefined)
         streamAiMessage(output.message, () => setCurrentQuestionId(output.nextQuestionId ?? nextId))
       } else {
         // ── Multi-LLM mode: compose message from static data + stage transition ──
@@ -864,8 +864,8 @@ function HomeContent() {
               /* Benchmark input — options panel or free-text */
               (() => {
                 const currentQuestion = currentQuestionId ? QUESTION_MAP[currentQuestionId] : null
-                // currentOptions holds AI-generated options (Single-LLM); falls back to static QUESTION_MAP options
-                const opts = currentOptions ?? currentQuestion?.options
+                // Options are set exclusively by the LLM response — no static fallback
+                const opts = currentOptions
                 if (opts && opts.length > 0) {
                   return (
                     <div className="bg-card border border-border rounded-xl overflow-hidden">
