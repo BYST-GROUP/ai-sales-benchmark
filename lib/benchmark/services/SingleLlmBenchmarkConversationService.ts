@@ -12,12 +12,10 @@ import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
 
 interface SingleLlmResponse {
   scores: Record<string, number>
-  insight: string | null
-  question_transition: string | null
-  stage_transition: string | null
-  next_question: string | null
+  message: string | null
   next_question_id: string | null
   options: string[] | null
+  is_complete: boolean
 }
 
 export class SingleLlmBenchmarkConversationService implements BenchmarkConversationService {
@@ -77,17 +75,13 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       scores[currentQuestionId] = 2
     }
 
-    // Build the display message: insight → stage_transition → question_transition → next_question
-    const parts: string[] = []
-    if (parsed?.insight) parts.push(parsed.insight)
-    if (parsed?.stage_transition) parts.push(parsed.stage_transition)
-    if (parsed?.question_transition) parts.push(parsed.question_transition)
-    if (parsed?.next_question) parts.push(parsed.next_question)
-    const displayMessage = parts.join('\n\n') || undefined
+    const displayMessage = parsed?.message ?? undefined
 
     const currentQuestionText = isStart
       ? 'Benchmark start'
       : (QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId)
+
+    const isComplete = parsed?.is_complete ?? false
 
     await appendLog({
       event: 'benchmark_answer',
@@ -98,6 +92,7 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       answer,
       scores,
       next_question_id: parsed?.next_question_id ?? null,
+      is_complete: isComplete,
       token_usage: usage ?? null,
     })
 
@@ -106,6 +101,7 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       message: displayMessage,
       options: parsed?.options ?? undefined,
       nextQuestionId: parsed?.next_question_id ?? undefined,
+      isComplete,
       responseId,
     }
   }

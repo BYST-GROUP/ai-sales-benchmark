@@ -415,7 +415,7 @@ function HomeContent() {
       const nextId = updatedState.remainingQuestions[0] ?? null
       setIsBenchmarkLoading(false)
 
-      if (!nextId) {
+      if (output.isComplete || !nextId) {
         // Benchmark complete
         setBenchmarkPhase('complete')
         setCurrentQuestionId(null)

@@ -78,21 +78,17 @@ When moving from Pillar 2 to Pillar 3, include this transition:
 Return ONLY a valid JSON object:
 {
   "scores": { "Q1": 3, "Q2": 2 },
-  "insight": "A short data-backed insight, or null",
-  "stage_transition": "Transition message if crossing pillar boundary, or null",
-  "question_transition": "Short conversational bridge into the next question, or null",
-  "next_question": "The full text of the next question to ask, or null if benchmark is complete",
+  "message": "Full message shown to the user. Combine any insight, stage transition, question transition, and the next question into a single natural block of text.",
   "next_question_id": "Q2",
-  "options": ["option 1", "option 2", "option 3"]
+  "options": ["option 1", "option 2", "option 3"],
+  "is_complete": false
 }
 
-- "scores": include ALL question IDs answered in this response (may be multiple if Q1 covered others)
-- "insight": string or null
-- "stage_transition": string or null
-- "question_transition": string or null
-- "next_question": string or null (null only when all questions answered)
-- "next_question_id": string or null
+- "scores": include ALL question IDs scored in this turn (may be multiple)
+- "message": single user-facing string — insight + transitions + next question combined. Do NOT put options inside message.
+- "next_question_id": string or null (null only when benchmark is complete)
 - "options": array of strings, or null if next question is free-form
+- "is_complete": true only when all questions are answered and there is no next question
 
 No text outside the JSON object.`
 
@@ -120,12 +116,10 @@ ${allQuestions}
 Return JSON:
 {
   "scores": {},
-  "insight": null,
-  "stage_transition": null,
-  "question_transition": null,
-  "next_question": "<full Q1 question text>",
+  "message": "<opening message + full Q1 question text>",
   "next_question_id": "Q1",
-  "options": null
+  "options": null,
+  "is_complete": false
 }`
 }
 
