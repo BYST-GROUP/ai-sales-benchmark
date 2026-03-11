@@ -2,12 +2,15 @@ import { QUESTION_MAP } from '@/lib/questions'
 
 /** Maps each question ID to its pillar display name. */
 const QUESTION_PILLAR: Record<string, string> = {
-  Q1:  'AE Sales Systems',
-  Q2:  'AE Sales Systems',
-  Q5:  'AE Sales Systems',
-  Q6:  'Leadership Systems',
-  Q8:  'Leadership Systems',
-  Q10: 'Enablement Systems',
+  Q1: 'AE Sales Systems',
+  Q2: 'AE Sales Systems',
+  Q3: 'AE Sales Systems',
+  Q4: 'AE Sales Systems',
+  Q5: 'Leadership Systems',
+  Q6: 'Leadership Systems',
+  Q7: 'Leadership Systems',
+  Q8: 'Enablement Systems',
+  Q9: 'Enablement Systems',
 }
 
 function formatConversationHistory(conversation: ReportConversationEntry[]): string {
@@ -42,9 +45,9 @@ Your job is to analyse their answers, calculate their maturity scores, and gener
 ## Maturity Framework
 
 **Pillars and questions:**
-- Pillar 1 — AE Systems: Q1 (AI day-to-day usage), Q2 (call notes & CRM updates), Q5 (handling technical questions)
-- Pillar 2 — Leadership Systems: Q6 (spotting underperformance), Q8 (feedback frequency)
-- Pillar 3 — Enablement Systems: Q10 (playbooks & battlecards)
+- Pillar 1 — AE Systems: Q1 (AI day-to-day usage), Q2 (call notes & CRM updates), Q3 (meeting prep), Q4 (handling technical questions)
+- Pillar 2 — Leadership Systems: Q5 (spotting underperformance), Q6 (top performer insights), Q7 (feedback frequency)
+- Pillar 3 — Enablement Systems: Q8 (sales onboarding), Q9 (playbooks & battlecards)
 
 **Scoring:**
 - Each question was scored 1–5 during the benchmark

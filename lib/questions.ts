@@ -3,7 +3,6 @@ export interface Question {
   pillar: 1 | 2 | 3
   text: string
   options?: string[]
-  enabled?: boolean
 }
 
 export const QUESTIONS: Question[] = [
@@ -25,7 +24,6 @@ export const QUESTIONS: Question[] = [
   {
     id: 'Q3',
     pillar: 1,
-    enabled: false,
     text: "How do your AEs prepare for a sales meeting — what do they typically know about the prospect going in, and how do they get that information?",
     options: [
       "They check the CRM and browse the company website",
@@ -34,7 +32,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 'Q5',
+    id: 'Q4',
     pillar: 1,
     text: "When prospects ask technical questions during the sales process — how do your AEs handle them? Do they loop in a solutions engineer, look it up themselves, or do they have tools that help them respond?",
     options: [
@@ -44,7 +42,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 'Q6',
+    id: 'Q5',
     pillar: 2,
     text: "When a rep is underperforming — when do you actually realise it? Do you find out when the quarter is already at risk? And how do you identify the specific areas that need improvement?",
     options: [
@@ -54,9 +52,8 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 'Q7',
+    id: 'Q6',
     pillar: 2,
-    enabled: false,
     text: "When you look at your top performing reps — do you know what they're doing differently? And do those behaviours make it into how you coach the rest of the team?",
     options: [
       "Not really — it's mostly gut feel and experience",
@@ -65,7 +62,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 'Q8',
+    id: 'Q7',
     pillar: 2,
     text: "How often do your AEs get feedback on what they are doing well and what they should start doing?",
     options: [
@@ -75,9 +72,8 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 'Q9',
+    id: 'Q8',
     pillar: 3,
-    enabled: false,
     text: "When a new AE joins — what does the onboarding process look like?",
     options: [
       "They shadow senior reps and ramp over 3–6 months",
@@ -86,7 +82,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 'Q10',
+    id: 'Q9',
     pillar: 3,
     text: "Are your AEs using the playbooks you've built — if you've built any? And do they have competitor battlecards they can easily use to win deals?",
     options: [
@@ -103,5 +99,5 @@ export const QUESTION_MAP: Record<string, Question> = Object.fromEntries(
 
 export const ALL_QUESTION_IDS = QUESTIONS.map(q => q.id)
 
-export const ACTIVE_QUESTIONS = QUESTIONS.filter(q => q.enabled !== false)
-export const ACTIVE_QUESTION_IDS = ACTIVE_QUESTIONS.map(q => q.id)
+export const ACTIVE_QUESTIONS = QUESTIONS
+export const ACTIVE_QUESTION_IDS = QUESTIONS.map(q => q.id)
