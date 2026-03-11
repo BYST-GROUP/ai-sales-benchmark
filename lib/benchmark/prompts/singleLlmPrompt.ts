@@ -174,55 +174,60 @@ export function buildSingleLlmVariables(input: BenchmarkTurnInput): Record<strin
 /**
  * Builds the `input` string sent to OpenAI on the START turn.
  * Includes company context so the conversation history has it for all subsequent turns.
+ * The app supplies the first question to ask so the LLM doesn't need to track ordering.
  */
 export function buildOpenAIInputMessage({
   companycontext,
-  currentquestiontext,
   answer,
+  nextquestiontext,
 }: {
   companycontext: string
-  currentquestiontext: string
   answer: string
+  nextquestiontext: string
 }): string {
   return `Company context: ${companycontext}
 
-Current question asked: "${currentquestiontext}"
-User's answer: "${answer}"
+User confirmed company info. Their response: "${answer}"
 
-Analyze the user answer.
-Determine how many benchmark dimensions were answered.
-Score all applicable dimensions using the BYST maturity framework.
-Update which questions remain unanswered.
-If this is the first turn, show the benchmark introduction before asking the first question.
-Then generate the next appropriate benchmark question.
+Open the benchmark with a brief intro, then ask the first question: "${nextquestiontext}"
 Return JSON only.`
 }
 
 /**
  * Builds a lean follow-up message for non-START OpenAI turns.
  * Omits company context — the Conversations API already has it in history from the START turn.
+ * The app supplies the next question so the LLM doesn't need to track ordering.
  */
 export function buildOpenAIFollowUpMessage({
   currentquestiontext,
   answer,
+  nextquestiontext,
+  isComplete,
 }: {
   currentquestiontext: string
   answer: string
+  nextquestiontext: string | null
+  isComplete: boolean
 }): string {
-  return `Current question asked: "${currentquestiontext}"
+  const nextPart = isComplete
+    ? 'The benchmark is now complete. Close the conversation warmly.'
+    : `Then ask the next question: "${nextquestiontext}"`
+
+  return `Current question: "${currentquestiontext}"
 User's answer: "${answer}"
 
-Analyze the user answer.
-Score all applicable dimensions using the BYST maturity framework.
-Update which questions remain unanswered.
-Then generate the next appropriate benchmark question.
+Score this answer. ${nextPart}
 Return JSON only.`
 }
 
 /**
  * Builds the user message for the single-LLM benchmark turn (Anthropic mode).
+ * The app supplies the next question so the LLM doesn't need to track ordering.
  */
-export function buildSingleLlmUserMessage(input: BenchmarkTurnInput): string {
+export function buildSingleLlmUserMessage(
+  input: BenchmarkTurnInput,
+  computed: { nextQuestionText: string | null; isComplete: boolean },
+): string {
   const {
     currentQuestionId,
     answer,
@@ -240,27 +245,19 @@ export function buildSingleLlmUserMessage(input: BenchmarkTurnInput): string {
   const scoresJson = JSON.stringify(currentScores)
 
   const historyText = conversationHistory.length > 0
-    ? conversationHistory
-        .map(t => `${t.questionId}: ${t.answer}`)
-        .join('\n')
+    ? conversationHistory.map(t => `${t.questionId}: ${t.answer}`).join('\n')
     : '(none yet)'
 
-  // Remaining = unanswered question IDs after this turn (current question is being answered now)
-  const remainingAfterThis = remainingQuestions.filter(id => id !== currentQuestionId)
-  const remainingText = remainingAfterThis.length > 0 ? remainingAfterThis.join(', ') : '(none)'
+  const nextPart = computed.isComplete
+    ? 'The benchmark is now complete. Close the conversation warmly.'
+    : `Then ask the next question: "${computed.nextQuestionText}"`
 
   return `Company context: ${companyContext ?? ''}
 Progress: ${answeredCount + 1} / ${totalCount} questions
 Scores so far: ${scoresJson}
 Conversation so far: ${historyText}
-Current question asked: "${currentQuestionText}" Current question ID: ${currentQuestionId}
+Current question: "${currentQuestionText}" (${currentQuestionId})
 User's answer: "${answer}"
-Remaining unanswered questions: ${remainingText}
-Analyze the user answer.
-Determine how many benchmark dimensions were answered.
-Score all applicable dimensions using the BYST maturity framework.
-Update which questions remain unanswered.
-If this is the first turn, show the benchmark introduction before asking the first question.
-Then generate the next appropriate benchmark question.
+Score this answer. ${nextPart}
 Return JSON only.`
 }

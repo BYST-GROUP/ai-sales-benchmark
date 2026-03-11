@@ -21,39 +21,40 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
   async processAnswer(input: BenchmarkTurnInput): Promise<BenchmarkTurnOutput> {
     const { currentQuestionId, sessionId, answer, conversationId } = input
 
-    // 'START' is a special sentinel used when the user has just confirmed/corrected
-    // the enrichment message and we need the LLM to open the benchmark with Q1.
     const isStart = currentQuestionId === 'START'
+
+    // App-side: compute next question and completion BEFORE calling the LLM.
+    // The LLM is told which question to ask next — it no longer tracks question ordering.
+    const remainingAfterThis = input.remainingQuestions.filter(id => id !== currentQuestionId)
+    const nextQuestionId     = remainingAfterThis[0] ?? null
+    const isComplete         = nextQuestionId === null && !isStart
+    const nextQuestionText   = nextQuestionId ? (QUESTION_MAP[nextQuestionId]?.text ?? nextQuestionId) : null
 
     // Three modes for building the per-turn payload:
     //
-    // 1. START turn (isStart): first call — OpenAILLMClient will create a new conv_... here.
-    //    `userMessage` = rendered template (same structure as all subsequent OpenAI turns).
-    //    `variables`   = full START variable set (fills stored prompt {{placeholder}} slots).
-    //
-    // 2. Non-START with conversationId (OpenAI Conversations API): conv_... already established.
-    //    `userMessage` = rendered template with current-turn values.
-    //    `variables`   = minimal set for stored prompt slots (companycontext always included).
-    //
-    // 3. Non-START without conversationId (Anthropic fallback): embed all context in the message.
+    // 1. START turn: first call, includes full company context in the conversation history.
+    // 2. Non-START with conversationId (OpenAI Conversations API): history lives server-side.
+    // 3. Non-START without conversationId (Anthropic fallback): full context embedded in message.
     let userMessage: string
     let variables: Record<string, string>
 
     if (isStart) {
-      // Build variables first; reuse their values to render the input message consistently.
       variables   = buildStartVariables(input)
       userMessage = buildOpenAIInputMessage({
-        companycontext:      variables.companycontext,
-        currentquestiontext: variables.currentquestiontext, // 'N/A — benchmark has not started yet'
-        answer:              variables.answer,
+        companycontext:   variables.companycontext,
+        answer:           variables.answer,
+        nextquestiontext: nextQuestionText ?? '',
       })
     } else if (conversationId) {
       // Conversations API thread established — history (including company context) lives server-side.
-      // Send only the current question + answer to minimise per-turn input tokens.
       const currentquestiontext = QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId
-      const answer              = input.answer
 
-      userMessage = buildOpenAIFollowUpMessage({ currentquestiontext, answer })
+      userMessage = buildOpenAIFollowUpMessage({
+        currentquestiontext,
+        answer,
+        nextquestiontext: nextQuestionText,
+        isComplete,
+      })
       variables   = {
         currentquestionid:   currentQuestionId,
         currentquestiontext,
@@ -62,7 +63,7 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       }
     } else {
       // Anthropic / no-thread fallback — embed full context in message.
-      userMessage = buildSingleLlmUserMessage(input)
+      userMessage = buildSingleLlmUserMessage(input, { nextQuestionText, isComplete })
       variables   = buildSingleLlmVariables(input)
     }
 
@@ -89,24 +90,15 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
 
     const scores: Record<string, number> = parsed?.scores ?? {}
 
-    // Always ensure the current question gets a score — but not for START
-    // (there's no real question to score on the first turn).
+    // Always ensure the current question gets a score — but not for START.
     if (!isStart && !scores[currentQuestionId]) {
       scores[currentQuestionId] = 2
     }
 
-    const displayMessage = parsed?.message ?? undefined
-
-    const currentQuestionText = isStart
-      ? 'Benchmark start'
-      : (QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId)
-
-    // App-side: determine next question and completion from known state.
-    // Options are returned by the LLM; app-computed value used as fallback.
-    const remainingAfterThis = input.remainingQuestions.filter(id => id !== currentQuestionId)
-    const nextQuestionId = remainingAfterThis[0] ?? null
-    const isComplete = nextQuestionId === null && !isStart
-    const options = parsed?.options ?? (nextQuestionId ? (QUESTION_MAP[nextQuestionId]?.options ?? null) : null)
+    const displayMessage    = parsed?.message ?? undefined
+    const currentQuestionText = isStart ? 'Benchmark start' : (QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId)
+    // Options come from the LLM (it knows the answer options from its system prompt).
+    const options           = parsed?.options ?? null
 
     await appendLog({
       event: 'benchmark_answer',
