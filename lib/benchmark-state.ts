@@ -13,8 +13,10 @@ export interface BenchmarkReport {
   maturityLabel: string
   maturityStage: string
   currentStage: {
-    whatYoureDoing: string
-    whatYoureExperiencing: string
+    /** 2–3 sentences: what the team is actually doing right now. */
+    whatItLooksLike: string
+    /** 2–3 sentences: the pain / outcomes they are experiencing. */
+    theProblem: string
   }
   nextStage: {
     title: string

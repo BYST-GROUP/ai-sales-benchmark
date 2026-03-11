@@ -1,11 +1,16 @@
 import { BenchmarkConversationService, BenchmarkTurnInput, BenchmarkTurnOutput } from '@/lib/benchmark/types'
 import {
   SINGLE_LLM_SYSTEM_PROMPT,
+  buildOpenAIInputMessage,
   buildSingleLlmUserMessage,
   buildSingleLlmVariables,
-  buildStartUserMessage,
   buildStartVariables,
+  // Note: buildStartUserMessage removed — START turn now uses buildOpenAIInputMessage
+  //       to keep input structure identical across all OpenAI turns.
 } from '@/lib/benchmark/prompts/singleLlmPrompt'
+// buildOpenAIInputMessage: renders the stored prompt template with real values — used for
+// all OpenAI turns (START and non-START). Ensures `input` always matches the template.
+// buildSingleLlmUserMessage / buildSingleLlmVariables: full-context builders for Anthropic fallback.
 import { appendLog } from '@/lib/logger'
 import { QUESTION_MAP } from '@/lib/questions'
 import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
@@ -20,39 +25,61 @@ interface SingleLlmResponse {
 
 export class SingleLlmBenchmarkConversationService implements BenchmarkConversationService {
   async processAnswer(input: BenchmarkTurnInput): Promise<BenchmarkTurnOutput> {
-    const { currentQuestionId, sessionId, answer, previousResponseId } = input
+    const { currentQuestionId, sessionId, answer, conversationId } = input
 
     // 'START' is a special sentinel used when the user has just confirmed/corrected
     // the enrichment message and we need the LLM to open the benchmark with Q1.
     const isStart = currentQuestionId === 'START'
 
-    // Anthropic: full context embedded in userMessage text
-    // OpenAI: context passed as template variables to fill {{placeholder}} slots
+    // Three modes for building the per-turn payload:
     //
-    // When previousResponseId is set (OpenAI Conversations API), conversation history
-    // is maintained server-side by OpenAI — we pass an empty historytext to avoid
-    // duplicating history that's already in the chained response context.
-    const userMessage = isStart
-      ? buildStartUserMessage(input)
-      : buildSingleLlmUserMessage(input)
+    // 1. START turn (isStart): first call — OpenAILLMClient will create a new conv_... here.
+    //    `userMessage` = rendered template (same structure as all subsequent OpenAI turns).
+    //    `variables`   = full START variable set (fills stored prompt {{placeholder}} slots).
+    //
+    // 2. Non-START with conversationId (OpenAI Conversations API): conv_... already established.
+    //    `userMessage` = rendered template with current-turn values.
+    //    `variables`   = minimal set for stored prompt slots (companycontext always included).
+    //
+    // 3. Non-START without conversationId (Anthropic fallback): embed all context in the message.
+    let userMessage: string
+    let variables: Record<string, string>
 
-    const baseVariables = isStart
-      ? buildStartVariables(input)
-      : buildSingleLlmVariables(input)
+    if (isStart) {
+      // Build variables first; reuse their values to render the input message consistently.
+      variables   = buildStartVariables(input)
+      userMessage = buildOpenAIInputMessage({
+        companycontext:      variables.companycontext,
+        currentquestiontext: variables.currentquestiontext, // 'N/A — benchmark has not started yet'
+        answer:              variables.answer,
+      })
+    } else if (conversationId) {
+      // Conversations API thread established — the persistent conv_... carries history.
+      // Always render the full template as `input` so every turn has identical structure.
+      const companycontext      = input.companyContext ?? ''
+      const currentquestiontext = QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId
+      const answer              = input.answer
 
-    // For START, there's no previous response to chain from.
-    // For regular turns, suppress historytext when OpenAI manages history server-side.
-    const variables = (!isStart && previousResponseId)
-      ? { ...baseVariables, historytext: '' }
-      : baseVariables
+      userMessage = buildOpenAIInputMessage({ companycontext, currentquestiontext, answer })
+      variables   = {
+        currentquestionid:   currentQuestionId,
+        currentquestiontext,
+        answer,
+        companycontext,
+      }
+    } else {
+      // Anthropic / no-thread fallback — embed full context in message.
+      userMessage = buildSingleLlmUserMessage(input)
+      variables   = buildSingleLlmVariables(input)
+    }
 
-    const { text, usage, responseId } = await getLLMClient().complete({
+    const { text, usage, conversationId: returnedConversationId } = await getLLMClient().complete({
       systemPrompt: SINGLE_LLM_SYSTEM_PROMPT,
       promptId: OPENAI_PROMPT_IDS.singleLlm,
       userMessage,
       variables,
       maxTokens: 2048, // reasoning models need headroom for thinking + JSON output
-      previousResponseId: isStart ? undefined : previousResponseId,
+      conversationId,
     })
 
     let parsed: SingleLlmResponse | null = null
@@ -102,7 +129,7 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       options: parsed?.options ?? undefined,
       nextQuestionId: parsed?.next_question_id ?? undefined,
       isComplete,
-      responseId,
+      conversationId: returnedConversationId,
     }
   }
 }

@@ -13,7 +13,7 @@ function stripMarkdownCodeFence(text: string): string {
 }
 
 export class OpenAILLMClient implements LLMClient {
-  async complete({ promptId, userMessage, variables, maxTokens = 1024, previousResponseId }: LLMCallInput): Promise<LLMCallOutput> {
+  async complete({ promptId, userMessage, variables, maxTokens = 1024, conversationId }: LLMCallInput): Promise<LLMCallOutput> {
     if (!promptId) {
       throw new Error(
         '[OpenAILLMClient] No promptId provided. Set the corresponding OPENAI_*_PROMPT_ID env var.',
@@ -23,14 +23,25 @@ export class OpenAILLMClient implements LLMClient {
     // Instantiated at call-time so OPENAI_API_KEY is guaranteed to be loaded
     const openai = new OpenAI()
 
+    // Conversations API approach: one persistent conv_... object per benchmark session.
+    // On the first turn (no conversationId) we create a new conversation and get a stable ID.
+    // Every subsequent turn passes that same ID — no need to chain response IDs.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let convId = conversationId
+    if (!convId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const conversation = await ((openai as any).conversations.create() as Promise<{ id: string }>)
+      convId = conversation.id
+      console.log('[OpenAILLMClient] Created new conversation:', convId)
+    }
+
     // The model and its configuration (including reasoning settings) are defined
     // in the stored prompt on the OpenAI platform — we do not specify a model here
     // so the prompt's own configuration takes precedence and no parameter conflicts occur.
-    // When variables are provided they fill {{placeholder}} slots in the stored prompt template.
     //
-    // When previousResponseId is set we use the OpenAI Conversations API to chain turns:
-    // OpenAI maintains the full conversation history server-side so we don't need to
-    // re-send historytext each turn. store:true persists this response for future chaining.
+    // `input`     = the rendered template string (company context + question + answer + instructions).
+    // `variables` = fills any {{placeholder}} slots in the stored prompt template.
+    // `conversation` = the persistent conv_... ID that carries the full conversation history.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await (openai.responses.create as (params: Record<string, unknown>) => Promise<any>)({
       prompt: {
@@ -40,7 +51,7 @@ export class OpenAILLMClient implements LLMClient {
       input: userMessage,
       max_output_tokens: maxTokens,
       store: true,
-      ...(previousResponseId ? { previous_response_id: previousResponseId } : {}),
+      conversation: convId,
     })
 
     // output_text is the convenience accessor for message-type output items.
@@ -59,10 +70,10 @@ export class OpenAILLMClient implements LLMClient {
       }
     }
 
+    // convId is the stable Conversations API ID (conv_...) — the same value is returned on
+    // every turn so the caller can store it once and reuse it for the entire session.
     console.log('[OpenAILLMClient] raw response text:', rawText.slice(0, 300))
-    if (previousResponseId) {
-      console.log('[OpenAILLMClient] chained from previous_response_id:', previousResponseId)
-    }
+    console.log('[OpenAILLMClient] conversation id (stable):', convId)
 
     const text = stripMarkdownCodeFence(rawText)
 
@@ -71,7 +82,7 @@ export class OpenAILLMClient implements LLMClient {
       usage: response.usage
         ? { input_tokens: response.usage.input_tokens, output_tokens: response.usage.output_tokens }
         : undefined,
-      responseId: response.id,
+      conversationId: convId,
     }
   }
 }

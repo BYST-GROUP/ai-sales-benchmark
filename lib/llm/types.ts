@@ -30,12 +30,13 @@ export interface LLMCallInput {
   maxTokens?: number
 
   /**
-   * OpenAI Conversations API: the response ID from the previous turn.
-   * When provided, OpenAI chains this response to the previous one, maintaining
-   * conversation history server-side (no need to re-send historytext each turn).
+   * OpenAI Conversations API: the conversation ID for this session.
+   * On the first turn, omit this (or pass undefined) so OpenAI creates a new conversation.
+   * On subsequent turns, pass the same ID returned by the previous call to continue the thread.
+   * OpenAI maintains the full conversation history server-side — no need to re-send historytext.
    * Anthropic mode: ignored.
    */
-  previousResponseId?: string
+  conversationId?: string
 }
 
 export interface LLMUsage {
@@ -49,11 +50,11 @@ export interface LLMCallOutput {
   /** Token usage for logging/monitoring. May be undefined if not available. */
   usage?: LLMUsage
   /**
-   * OpenAI Conversations API: the ID of this response.
-   * Pass as `previousResponseId` on the next turn to chain the conversation.
+   * OpenAI Conversations API: the conversation ID for this session.
+   * Returned on every turn — pass it as `conversationId` on the next turn to continue the thread.
    * Undefined for Anthropic responses.
    */
-  responseId?: string
+  conversationId?: string
 }
 
 export interface LLMClient {

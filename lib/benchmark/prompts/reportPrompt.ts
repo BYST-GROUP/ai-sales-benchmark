@@ -1,5 +1,25 @@
 import { QUESTION_MAP } from '@/lib/questions'
 
+/** Maps each question ID to its pillar display name. */
+const QUESTION_PILLAR: Record<string, string> = {
+  Q1:  'AE Sales Systems',
+  Q2:  'AE Sales Systems',
+  Q5:  'AE Sales Systems',
+  Q6:  'Leadership Systems',
+  Q8:  'Leadership Systems',
+  Q10: 'Enablement Systems',
+}
+
+function formatConversationHistory(conversation: ReportConversationEntry[]): string {
+  return conversation
+    .map(({ questionId, answer, score }) => {
+      const pillar       = QUESTION_PILLAR[questionId] ?? 'Unknown'
+      const questionText = QUESTION_MAP[questionId]?.text ?? questionId
+      return `Pillar: ${pillar}\n${questionId} (score: ${score}/5)\nQuestion: "${questionText}"\nAnswer: "${answer}"`
+    })
+    .join('\n\n')
+}
+
 export interface ReportConversationEntry {
   questionId: string
   answer: string
@@ -42,8 +62,9 @@ Your job is to analyse their answers, calculate their maturity scores, and gener
 
 Write everything grounded in what the organisation actually said — not generic stage descriptions.
 
-- **currentStage.whatYoureDoing**: 2–3 sentences. Describe what their team is actually doing based on their answers. Reference specifics (tools mentioned, workflows described).
-- **currentStage.whatYoureExperiencing**: 2–3 sentences. Describe the outcomes and pain they're likely experiencing given their setup.
+- **currentStage**: An object with two string fields:
+  - "whatItLooksLike" (2–3 sentences): What their team is actually doing. Reference specifics (tools mentioned, workflows described).
+  - "theProblem" (2–3 sentences): The outcomes and pain they're likely experiencing given their setup.
 - **nextStage.whatItLooksLike**: 2–3 sentences. Concrete description of what moving to the next stage would look like for their team specifically — not generic.
 - **nextStage.whyItMatters**: 1–2 sentences. Why this next step matters for their business.
 - **nextStage.impactStats**: Exactly 4 metrics relevant to their stage transition. Use realistic industry benchmarks. Labels should be short (3–5 words). Values should be specific (e.g. "~2.5 hrs/rep/day", "+15–20%").
@@ -57,8 +78,8 @@ Return ONLY valid JSON:
   "maturityLabel": "AI Enabled",
   "maturityStage": "Stage 3: Connected Workflows",
   "currentStage": {
-    "whatYoureDoing": "...",
-    "whatYoureExperiencing": "..."
+    "whatItLooksLike": "2–3 sentences about what the team is currently doing.",
+    "theProblem": "2–3 sentences about the pain and outcomes they are experiencing."
   },
   "nextStage": {
     "title": "AI Leading",
@@ -83,14 +104,8 @@ export function buildReportUserMessage(
   companyContext: string | null | undefined,
   conversation: ReportConversationEntry[],
 ): string {
-  const historyText = conversation
-    .map(({ questionId, answer, score }) => {
-      const questionText = QUESTION_MAP[questionId]?.text ?? questionId
-      return `${questionId} (score: ${score}/5)\nQuestion: "${questionText}"\nAnswer: "${answer}"`
-    })
-    .join('\n\n')
-
-  const scoresJson = JSON.stringify(
+  const historyText = formatConversationHistory(conversation)
+  const scoresJson  = JSON.stringify(
     Object.fromEntries(conversation.map(({ questionId, score }) => [questionId, score]))
   )
 
@@ -121,13 +136,7 @@ export function buildReportVariables(
   companyContext: string | null | undefined,
   conversation: ReportConversationEntry[],
 ): Record<string, string> {
-  const conversationHistory = conversation
-    .map(({ questionId, answer, score }) => {
-      const questionText = QUESTION_MAP[questionId]?.text ?? questionId
-      return `${questionId} (score: ${score}/5)\nQuestion: "${questionText}"\nAnswer: "${answer}"`
-    })
-    .join('\n\n')
-
+  const conversationHistory = formatConversationHistory(conversation)
   const scoresJson = JSON.stringify(
     Object.fromEntries(conversation.map(({ questionId, score }) => [questionId, score]))
   )

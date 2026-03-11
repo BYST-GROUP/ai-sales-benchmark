@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       promptId:     hasOpenAIPrompt ? OPENAI_PROMPT_IDS.scoreReport : undefined,
       variables:    hasOpenAIPrompt ? variables : undefined,
       userMessage,
-      maxTokens:    1024,
+      maxTokens:    4096, // report has multiple long text fields — 1024 was too small and truncated JSON
     })
 
     // Parse the LLM JSON response

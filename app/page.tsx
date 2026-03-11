@@ -9,6 +9,7 @@ import type { ConversationTurn } from '@/lib/benchmark/types'
 import type { MaturityLabel } from '@/lib/results-content'
 import MaturityCurveChart from '@/components/MaturityCurveChart'
 import { domainFromSlug, slugFromDomain } from '@/lib/slug'
+import { FEATURE_FLAGS } from '@/lib/feature-flags'
 
 type Phase = 'hero' | 'chat' | 'results'
 
@@ -64,6 +65,7 @@ function HomeContent() {
   const [benchmarkPhase, setBenchmarkPhase] = useState<'idle' | 'questioning' | 'complete'>('idle')
   const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(null)
   const [isBenchmarkLoading, setIsBenchmarkLoading] = useState(false)
+  const [isComputingReport, setIsComputingReport] = useState(false)
   const [benchmarkInput, setBenchmarkInput] = useState('')
   const [hasUserResponded, setHasUserResponded] = useState(false)
   // Single-LLM mode: options returned by the AI (falls back to QUESTION_MAP options in multi mode)
@@ -73,6 +75,8 @@ function HomeContent() {
   const [streamingMessage, setStreamingMessage] = useState<string | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const streamIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Holds a "finish immediately" fn for the current stream — called when tab goes to background
+  const streamCompleteRef = useRef<(() => void) | null>(null)
 
   // Voice input state
   const [isRecording, setIsRecording] = useState(false)
@@ -94,8 +98,9 @@ function HomeContent() {
   const companyContextRef = useRef<string>('')
   // Conversation history for Single-LLM mode (Anthropic) / fallback when no responseId yet
   const conversationHistoryRef = useRef<ConversationTurn[]>([])
-  // OpenAI Conversations API: response ID from the last benchmark turn, used to chain turns
-  const openAiResponseIdRef = useRef<string | undefined>(undefined)
+  // OpenAI Conversations API: conversation ID for the entire benchmark session.
+  // Set once from the START turn response and reused for all subsequent turns.
+  const conversationIdRef = useRef<string | undefined>(undefined)
   // Stores what the user said in response to the enrichment message (used to seed the START LLM call)
   const enrichmentAnswerRef = useRef<string>('Looks good')
 
@@ -103,6 +108,7 @@ function HomeContent() {
   useEffect(() => {
     return () => {
       if (streamIntervalRef.current) clearInterval(streamIntervalRef.current)
+      streamCompleteRef.current = null
       recognitionRef.current?.stop()
     }
   }, [])
@@ -117,7 +123,7 @@ function HomeContent() {
     resolvedMessage.current = null
     apiDone.current = false
     conversationHistoryRef.current = []
-    openAiResponseIdRef.current = undefined
+    conversationIdRef.current = undefined
     setPhase('chat')
     setIsTyping(true)
     setStatusIndex(0)
@@ -135,9 +141,10 @@ function HomeContent() {
     if (!sessionParam) return
     fetch(`/api/session/${sessionParam}`)
       .then(r => r.json())
-      .then((d: { benchmarkState?: BenchmarkState }) => {
+      .then((d: { benchmarkState?: BenchmarkState; benchmarkReport?: BenchmarkReport }) => {
         if (d.benchmarkState) {
           setBenchmarkState(d.benchmarkState)
+          if (d.benchmarkReport) setBenchmarkReport(d.benchmarkReport)
           setPhase('results')
         }
       })
@@ -161,25 +168,48 @@ function HomeContent() {
     statusTimers.current = []
   }
 
-  // Stream an AI message character-by-character, then commit to messages array
+  // Stream an AI message character-by-character, then commit to messages array.
+  // When the tab goes to background the interval would be throttled by the browser,
+  // stalling the conversation. We store a `finish` fn in streamCompleteRef so the
+  // visibilitychange handler can complete the stream instantly when the tab is hidden.
   function streamAiMessage(text: string, onComplete?: () => void) {
     if (streamIntervalRef.current) clearInterval(streamIntervalRef.current)
     setIsStreaming(true)
     setStreamingMessage('')
     let i = 0
+    let finished = false
+
+    function finish() {
+      if (finished) return
+      finished = true
+      clearInterval(streamIntervalRef.current!)
+      streamIntervalRef.current = null
+      streamCompleteRef.current = null
+      setStreamingMessage(null)
+      setIsStreaming(false)
+      setMessages(prev => [...prev, { role: 'ai', content: text }])
+      onComplete?.()
+    }
+
+    // Expose finish so the visibility handler can skip the animation if needed
+    streamCompleteRef.current = finish
+
     streamIntervalRef.current = setInterval(() => {
       i++
       setStreamingMessage(text.slice(0, i))
-      if (i >= text.length) {
-        clearInterval(streamIntervalRef.current!)
-        streamIntervalRef.current = null
-        setStreamingMessage(null)
-        setIsStreaming(false)
-        setMessages(prev => [...prev, { role: 'ai', content: text }])
-        onComplete?.()
-      }
+      if (i >= text.length) finish()
     }, 14)
   }
+
+  // Complete any in-progress stream immediately when the tab goes to the background.
+  // This prevents the browser's timer throttling from stalling the conversation flow.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.hidden) streamCompleteRef.current?.()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   // Voice input — fixed: separate final/interim transcripts, single utterance mode
   function toggleMic(setInput: React.Dispatch<React.SetStateAction<string>>) {
@@ -227,7 +257,7 @@ function HomeContent() {
     resolvedMessage.current = null
     apiDone.current = false
     conversationHistoryRef.current = []
-    openAiResponseIdRef.current = undefined
+    conversationIdRef.current = undefined
     setPhase('chat')
     setIsTyping(true)
     setStatusIndex(0)
@@ -305,7 +335,7 @@ function HomeContent() {
   // Scroll to bottom whenever chat updates
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping, showOptions, showFinalTyping, isBenchmarkLoading, streamingMessage])
+  }, [messages, isTyping, showOptions, showFinalTyping, isBenchmarkLoading, isComputingReport, streamingMessage])
 
   function handleLooksGood() {
     enrichmentAnswerRef.current = 'Looks good — the company information is accurate.'
@@ -347,8 +377,8 @@ function HomeContent() {
         })
           .then(output => {
             setIsBenchmarkLoading(false)
-            // Chain subsequent turns from this response
-            if (output.responseId) openAiResponseIdRef.current = output.responseId
+            // Store the conversation ID once — reused for all subsequent turns
+            if (output.conversationId) conversationIdRef.current = output.conversationId
             setCurrentOptions(output.options ?? undefined)
             const questionText = output.message ?? ACTIVE_QUESTIONS[0].text
             streamAiMessage(questionText, () => {
@@ -390,7 +420,7 @@ function HomeContent() {
         companyContext: companyContextRef.current || undefined,
         conversationHistory: conversationHistoryRef.current,
         currentScores: benchmarkState.scores,
-        previousResponseId: openAiResponseIdRef.current,
+        conversationId: conversationIdRef.current,
       })
 
       const newScores = output.scores
@@ -403,10 +433,9 @@ function HomeContent() {
         { questionId: currentQuestionId, answer: trimmed },
       ]
 
-      // Store the OpenAI response ID to chain the next turn via Conversations API
-      if (output.responseId) {
-        openAiResponseIdRef.current = output.responseId
-      }
+      // Update conversationIdRef after every turn: with previous_response_id chaining each
+      // turn returns a new response.id that the next turn must pass as previous_response_id.
+      if (output.conversationId) conversationIdRef.current = output.conversationId
 
       const nextId = updatedState.remainingQuestions[0] ?? null
       setIsBenchmarkLoading(false)
@@ -444,6 +473,7 @@ function HomeContent() {
 
         streamAiMessage(closingText, () => {
           window.history.pushState({}, '', `/benchmark/session/${sessionIdRef.current}`)
+          setIsComputingReport(true)
           // Fetch the LLM-generated report in the background; show results whether or not it succeeds
           fetch('/api/score-report', {
             method: 'POST',
@@ -459,7 +489,10 @@ function HomeContent() {
               if (report) setBenchmarkReport(report)
             })
             .catch(() => {})
-            .finally(() => setTimeout(() => setPhase('results'), 100))
+            .finally(() => {
+              setIsComputingReport(false)
+              setTimeout(() => setPhase('results'), 100)
+            })
         })
       } else if (output.message) {
         // Stream the LLM-generated message, then advance to the next question
@@ -786,6 +819,13 @@ function HomeContent() {
 
             {isBenchmarkLoading && <AiTypingBubble />}
 
+            {isComputingReport && (
+              <div className="flex flex-col gap-2">
+                <AiTypingBubble />
+                <p className="text-xs text-muted-foreground">Computing your results...</p>
+              </div>
+            )}
+
             <div ref={chatBottomRef} />
           </div>
         </div>
@@ -1008,8 +1048,8 @@ function HomeContent() {
               )}
             </div>
 
-            {/* 3 — Pillar scores (hidden — toggle false to show) */}
-            {false && (
+            {/* 3 — Pillar scores (controlled by FEATURE_FLAGS.SHOW_PILLAR_SCORES) */}
+            {FEATURE_FLAGS.SHOW_PILLAR_SCORES && (
               <div className="grid grid-cols-3 gap-3">
                 {(
                   [
@@ -1032,20 +1072,31 @@ function HomeContent() {
               </div>
             )}
 
-            {/* 4 — What this means for you (LLM-generated, personalised to their answers) */}
-            {benchmarkReport?.currentStage ? (
+            {/* 4 — The Current Stage (LLM-generated, personalised to their answers) */}
+            {benchmarkReport?.currentStage?.whatItLooksLike ? (
               <div className="border border-border rounded-xl p-6 bg-card flex flex-col gap-4">
-                <p className="text-xs tracking-widest uppercase text-muted-foreground">What This Means For You</p>
+                <div className="flex items-center gap-3">
+                  <p className="text-xs tracking-widest uppercase text-muted-foreground">The Current Stage</p>
+                  <span className="text-xs font-medium text-primary border border-primary/30 rounded-full px-2.5 py-0.5">
+                    {benchmarkReport.maturityLabel}
+                  </span>
+                </div>
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-xs font-medium text-primary uppercase tracking-wider">What you&apos;re doing</p>
-                    <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.currentStage.whatYoureDoing}</p>
-                  </div>
-                  <div className="h-px bg-border" />
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-xs font-medium text-primary uppercase tracking-wider">What you&apos;re experiencing</p>
-                    <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.currentStage.whatYoureExperiencing}</p>
-                  </div>
+                  {benchmarkReport.currentStage.whatItLooksLike && (
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-xs font-medium text-primary uppercase tracking-wider">What it looks like</p>
+                      <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.currentStage.whatItLooksLike}</p>
+                    </div>
+                  )}
+                  {benchmarkReport.currentStage.theProblem && (
+                    <>
+                      <div className="h-px bg-border" />
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-xs font-medium text-primary uppercase tracking-wider">The Problem</p>
+                        <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.currentStage.theProblem}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (

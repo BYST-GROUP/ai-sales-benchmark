@@ -179,6 +179,40 @@ export function buildSingleLlmVariables(input: BenchmarkTurnInput): Record<strin
 }
 
 /**
+ * Builds the `input` string sent to OpenAI on every turn (START and non-START alike).
+ * This mirrors the stored prompt's user-message template exactly so the model always
+ * receives the same structured context regardless of which turn it is.
+ *
+ * Template (matches the OpenAI stored prompt configuration):
+ *   Company context: {{companycontext}}
+ *   Current question asked: "{{currentquestiontext}}"
+ *   User's answer: "{{answer}}"
+ *   Analyze the user answer. ...
+ */
+export function buildOpenAIInputMessage({
+  companycontext,
+  currentquestiontext,
+  answer,
+}: {
+  companycontext: string
+  currentquestiontext: string
+  answer: string
+}): string {
+  return `Company context: ${companycontext}
+
+Current question asked: "${currentquestiontext}"
+User's answer: "${answer}"
+
+Analyze the user answer.
+Determine how many benchmark dimensions were answered.
+Score all applicable dimensions using the BYST maturity framework.
+Update which questions remain unanswered.
+If this is the first turn, show the benchmark introduction before asking the first question.
+Then generate the next appropriate benchmark question.
+Return JSON only.`
+}
+
+/**
  * Builds the user message for the single-LLM benchmark turn (Anthropic mode).
  */
 export function buildSingleLlmUserMessage(input: BenchmarkTurnInput): string {
