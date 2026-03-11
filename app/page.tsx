@@ -442,8 +442,11 @@ function HomeContent() {
       const nextId = updatedState.remainingQuestions[0] ?? null
       setIsBenchmarkLoading(false)
 
-      if (output.isComplete || !nextId) {
-        // Benchmark complete
+      if (output.isComplete) {
+        // Benchmark complete — use only the app-computed flag, never !nextId.
+        // If the LLM pre-scores a future question the remaining list can empty
+        // before the final turn fires, causing premature completion with a
+        // question-like message shown as the closing text.
         setBenchmarkPhase('complete')
         setCurrentQuestionId(null)
 
@@ -469,9 +472,11 @@ function HomeContent() {
           }),
         }).catch(() => {})
 
-        const closingText = output.message
-          ? output.message
-          : "That covers everything — let me put your results together."
+        // Always use a hardcoded closing on the final turn.
+        // The stored OpenAI prompt can return a question-like message even when
+        // told to close (its internal Q1-Q9 ordering overrides the instruction),
+        // so we never show output.message here.
+        const closingText = "That covers everything — let me put your results together."
 
         streamAiMessage(closingText, () => {
           window.history.pushState({}, '', `/benchmark/session/${sessionIdRef.current}`)
