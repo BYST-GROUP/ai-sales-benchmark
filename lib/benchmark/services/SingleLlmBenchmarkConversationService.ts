@@ -14,6 +14,7 @@ import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
 interface SingleLlmResponse {
   scores: Record<string, number>
   message: string | null
+  options: string[] | null
 }
 
 export class SingleLlmBenchmarkConversationService implements BenchmarkConversationService {
@@ -100,12 +101,12 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       ? 'Benchmark start'
       : (QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId)
 
-    // App-side: determine next question, completion, and options from known state.
-    // The LLM no longer outputs next_question_id / is_complete / options.
+    // App-side: determine next question and completion from known state.
+    // Options are returned by the LLM; app-computed value used as fallback.
     const remainingAfterThis = input.remainingQuestions.filter(id => id !== currentQuestionId)
     const nextQuestionId = remainingAfterThis[0] ?? null
     const isComplete = nextQuestionId === null && !isStart
-    const options = nextQuestionId ? (QUESTION_MAP[nextQuestionId]?.options ?? null) : null
+    const options = parsed?.options ?? (nextQuestionId ? (QUESTION_MAP[nextQuestionId]?.options ?? null) : null)
 
     await appendLog({
       event: 'benchmark_answer',

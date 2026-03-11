@@ -78,11 +78,13 @@ When moving from Pillar 2 to Pillar 3, include this transition:
 Return ONLY a valid JSON object:
 {
   "scores": { "Q1": 3, "Q2": 2 },
-  "message": "Full message shown to the user. Combine any insight, stage transition, question transition, and the next question into a single natural block of text."
+  "message": "Full message shown to the user. Combine any insight, stage transition, question transition, and the next question into a single natural block of text.",
+  "options": ["option 1", "option 2", "option 3"]
 }
 
 - "scores": include ALL question IDs scored in this turn (may be multiple)
-- "message": single user-facing string — insight + transitions + next question combined.
+- "message": single user-facing string — insight + transitions + next question combined. Do NOT put options inside message.
+- "options": exact answer options for the next question, or null if the next question is free-form or the benchmark is complete
 
 No text outside the JSON object.`
 
