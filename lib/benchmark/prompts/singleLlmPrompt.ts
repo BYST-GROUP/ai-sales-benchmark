@@ -70,7 +70,7 @@ When moving from Pillar 2 to Pillar 3, include this transition:
 - Stage transition: Only when crossing pillar boundaries. Use exact text above.
 - Question transition: 1–2 short sentences max. A short conversational bridge leading into the next question. Be specific to what they said. Never generic.
 - Next question: State it clearly and directly. No preamble.
-- Options: Include the exact options from the list above when the next question has them.
+- Do NOT include answer options in the message — the UI displays them separately.
 - Be conversational but efficient — no long paragraphs.
 
 ## Output Format
@@ -78,17 +78,11 @@ When moving from Pillar 2 to Pillar 3, include this transition:
 Return ONLY a valid JSON object:
 {
   "scores": { "Q1": 3, "Q2": 2 },
-  "message": "Full message shown to the user. Combine any insight, stage transition, question transition, and the next question into a single natural block of text.",
-  "next_question_id": "Q2",
-  "options": ["option 1", "option 2", "option 3"],
-  "is_complete": false
+  "message": "Full message shown to the user. Combine any insight, stage transition, question transition, and the next question into a single natural block of text."
 }
 
 - "scores": include ALL question IDs scored in this turn (may be multiple)
-- "message": single user-facing string — insight + transitions + next question combined. Do NOT put options inside message.
-- "next_question_id": string or null (null only when benchmark is complete)
-- "options": array of strings, or null if next question is free-form
-- "is_complete": true only when all questions are answered and there is no next question
+- "message": single user-facing string — insight + transitions + next question combined.
 
 No text outside the JSON object.`
 
@@ -109,10 +103,7 @@ Open the benchmark and ask Q1.
 Return JSON:
 {
   "scores": {},
-  "message": "<opening message + full Q1 question text>",
-  "next_question_id": "Q1",
-  "options": null,
-  "is_complete": false
+  "message": "<opening message + full Q1 question text>"
 }`
 }
 

@@ -14,9 +14,6 @@ import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
 interface SingleLlmResponse {
   scores: Record<string, number>
   message: string | null
-  next_question_id: string | null
-  options: string[] | null
-  is_complete: boolean
 }
 
 export class SingleLlmBenchmarkConversationService implements BenchmarkConversationService {
@@ -103,7 +100,12 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       ? 'Benchmark start'
       : (QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId)
 
-    const isComplete = parsed?.is_complete ?? false
+    // App-side: determine next question, completion, and options from known state.
+    // The LLM no longer outputs next_question_id / is_complete / options.
+    const remainingAfterThis = input.remainingQuestions.filter(id => id !== currentQuestionId)
+    const nextQuestionId = remainingAfterThis[0] ?? null
+    const isComplete = nextQuestionId === null && !isStart
+    const options = nextQuestionId ? (QUESTION_MAP[nextQuestionId]?.options ?? null) : null
 
     await appendLog({
       event: 'benchmark_answer',
@@ -113,7 +115,7 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       question: currentQuestionText,
       answer,
       scores,
-      next_question_id: parsed?.next_question_id ?? null,
+      next_question_id: nextQuestionId,
       is_complete: isComplete,
       token_usage: usage ?? null,
     })
@@ -121,8 +123,8 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
     return {
       scores,
       message: displayMessage,
-      options: parsed?.options ?? undefined,
-      nextQuestionId: parsed?.next_question_id ?? undefined,
+      options: options ?? undefined,
+      nextQuestionId: nextQuestionId ?? undefined,
       isComplete,
       conversationId: returnedConversationId,
     }
