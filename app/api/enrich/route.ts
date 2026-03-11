@@ -3,7 +3,7 @@ import { inferACV, inferCustomerCount, inferGTMMotion } from '@/lib/data-enrichm
 import type { CompanyProfile } from '@/types'
 import { appendLog } from '@/lib/logger'
 import { getCachedEnrichment, setCachedEnrichment } from '@/lib/enrichment-cache'
-import { getLLMClient, OPENAI_PROMPT_IDS, type LLMUsage } from '@/lib/llm'
+import { getLLMClient, OPENAI_PROMPT_IDS, LLM_PROVIDER, createOpenAIConversation, type LLMUsage } from '@/lib/llm'
 
 export const maxDuration = 30
 
@@ -130,7 +130,12 @@ export async function POST(req: NextRequest) {
     const cached = await getCachedEnrichment(domain)
     if (cached) {
       await appendLog({ event: 'enrich_cache_hit', sessionId, domain })
-      return NextResponse.json({ ...cached.profile, enrichment_message: cached.enrichment_message })
+      const conversationId = LLM_PROVIDER === 'openai' ? await createOpenAIConversation() : undefined
+      return NextResponse.json({
+        ...cached.profile,
+        enrichment_message: cached.enrichment_message,
+        ...(conversationId ? { conversationId } : {}),
+      })
     }
 
     // Step 2: Fetch website text
@@ -176,7 +181,14 @@ export async function POST(req: NextRequest) {
       token_usage: tokenUsage ?? null,
     })
 
-    return NextResponse.json({ ...profile, enrichment_message: enrichResult.enrichment_message })
+    // Pre-create an OpenAI conversation so the first benchmark turn skips the extra round-trip.
+    const conversationId = LLM_PROVIDER === 'openai' ? await createOpenAIConversation() : undefined
+
+    return NextResponse.json({
+      ...profile,
+      enrichment_message: enrichResult.enrichment_message,
+      ...(conversationId ? { conversationId } : {}),
+    })
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)
     console.error('[enrich] error:', err)

@@ -179,15 +179,8 @@ export function buildSingleLlmVariables(input: BenchmarkTurnInput): Record<strin
 }
 
 /**
- * Builds the `input` string sent to OpenAI on every turn (START and non-START alike).
- * This mirrors the stored prompt's user-message template exactly so the model always
- * receives the same structured context regardless of which turn it is.
- *
- * Template (matches the OpenAI stored prompt configuration):
- *   Company context: {{companycontext}}
- *   Current question asked: "{{currentquestiontext}}"
- *   User's answer: "{{answer}}"
- *   Analyze the user answer. ...
+ * Builds the `input` string sent to OpenAI on the START turn.
+ * Includes company context so the conversation history has it for all subsequent turns.
  */
 export function buildOpenAIInputMessage({
   companycontext,
@@ -208,6 +201,27 @@ Determine how many benchmark dimensions were answered.
 Score all applicable dimensions using the BYST maturity framework.
 Update which questions remain unanswered.
 If this is the first turn, show the benchmark introduction before asking the first question.
+Then generate the next appropriate benchmark question.
+Return JSON only.`
+}
+
+/**
+ * Builds a lean follow-up message for non-START OpenAI turns.
+ * Omits company context — the Conversations API already has it in history from the START turn.
+ */
+export function buildOpenAIFollowUpMessage({
+  currentquestiontext,
+  answer,
+}: {
+  currentquestiontext: string
+  answer: string
+}): string {
+  return `Current question asked: "${currentquestiontext}"
+User's answer: "${answer}"
+
+Analyze the user answer.
+Score all applicable dimensions using the BYST maturity framework.
+Update which questions remain unanswered.
 Then generate the next appropriate benchmark question.
 Return JSON only.`
 }

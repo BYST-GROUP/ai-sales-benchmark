@@ -12,6 +12,23 @@ function stripMarkdownCodeFence(text: string): string {
     .trim()
 }
 
+// Lazily initialised so OPENAI_API_KEY is only required when the OpenAI provider is active.
+let _openai: OpenAI | null = null
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI()
+  return _openai
+}
+
+/**
+ * Pre-creates an OpenAI Conversations API thread.
+ * Call once during enrichment so the first benchmark turn skips the extra round-trip.
+ */
+export async function createOpenAIConversation(): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conversation = await ((getOpenAI() as any).conversations.create() as Promise<{ id: string }>)
+  return conversation.id
+}
+
 export class OpenAILLMClient implements LLMClient {
   async complete({ promptId, userMessage, variables, maxTokens = 1024, conversationId }: LLMCallInput): Promise<LLMCallOutput> {
     if (!promptId) {
@@ -20,19 +37,15 @@ export class OpenAILLMClient implements LLMClient {
       )
     }
 
-    // Instantiated at call-time so OPENAI_API_KEY is guaranteed to be loaded
-    const openai = new OpenAI()
+    const openai = getOpenAI()
 
     // Conversations API approach: one persistent conv_... object per benchmark session.
-    // On the first turn (no conversationId) we create a new conversation and get a stable ID.
-    // Every subsequent turn passes that same ID — no need to chain response IDs.
+    // Normally the ID is pre-created during enrichment; this fallback handles edge cases.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let convId = conversationId
     if (!convId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const conversation = await ((openai as any).conversations.create() as Promise<{ id: string }>)
-      convId = conversation.id
-      console.log('[OpenAILLMClient] Created new conversation:', convId)
+      convId = await createOpenAIConversation()
+      console.log('[OpenAILLMClient] Created new conversation (fallback):', convId)
     }
 
     // The model and its configuration (including reasoning settings) are defined

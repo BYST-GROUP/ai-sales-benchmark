@@ -291,6 +291,8 @@ function HomeContent() {
         const enrichmentMsg = data.enrichment_message ?? "I couldn't find data for this domain. Can you tell me a bit about your company?"
         resolvedMessage.current = enrichmentMsg
         companyContextRef.current = enrichmentMsg
+        // Store pre-created OpenAI conversation ID to skip the extra round-trip on the first turn
+        if (data.conversationId) conversationIdRef.current = data.conversationId
       }
     } catch {
       resolvedMessage.current =

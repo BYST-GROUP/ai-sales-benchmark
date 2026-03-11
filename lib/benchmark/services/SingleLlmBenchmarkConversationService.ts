@@ -2,15 +2,11 @@ import { BenchmarkConversationService, BenchmarkTurnInput, BenchmarkTurnOutput }
 import {
   SINGLE_LLM_SYSTEM_PROMPT,
   buildOpenAIInputMessage,
+  buildOpenAIFollowUpMessage,
   buildSingleLlmUserMessage,
   buildSingleLlmVariables,
   buildStartVariables,
-  // Note: buildStartUserMessage removed — START turn now uses buildOpenAIInputMessage
-  //       to keep input structure identical across all OpenAI turns.
 } from '@/lib/benchmark/prompts/singleLlmPrompt'
-// buildOpenAIInputMessage: renders the stored prompt template with real values — used for
-// all OpenAI turns (START and non-START). Ensures `input` always matches the template.
-// buildSingleLlmUserMessage / buildSingleLlmVariables: full-context builders for Anthropic fallback.
 import { appendLog } from '@/lib/logger'
 import { QUESTION_MAP } from '@/lib/questions'
 import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
@@ -54,18 +50,17 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
         answer:              variables.answer,
       })
     } else if (conversationId) {
-      // Conversations API thread established — the persistent conv_... carries history.
-      // Always render the full template as `input` so every turn has identical structure.
-      const companycontext      = input.companyContext ?? ''
+      // Conversations API thread established — history (including company context) lives server-side.
+      // Send only the current question + answer to minimise per-turn input tokens.
       const currentquestiontext = QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId
       const answer              = input.answer
 
-      userMessage = buildOpenAIInputMessage({ companycontext, currentquestiontext, answer })
+      userMessage = buildOpenAIFollowUpMessage({ currentquestiontext, answer })
       variables   = {
         currentquestionid:   currentQuestionId,
         currentquestiontext,
         answer,
-        companycontext,
+        companycontext:      '', // already in conversation history
       }
     } else {
       // Anthropic / no-thread fallback — embed full context in message.
