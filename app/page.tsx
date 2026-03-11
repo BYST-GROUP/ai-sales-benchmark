@@ -1174,10 +1174,18 @@ function HomeContent() {
             )}
 
             {/* 6 — CTA */}
+            {(() => {
+              const nextStageLabel =
+                benchmarkReport === null
+                  ? 'AI-native'                        // still loading — safe default
+                  : benchmarkReport.nextStage === null
+                    ? 'AI Native'                       // already at the top
+                    : benchmarkReport.nextStage.title   // e.g. "AI Leading"
+              return (
             <div className="border border-primary/30 rounded-xl p-8 flex flex-col items-center text-center gap-4 bg-primary/5">
-              <p className="font-display font-semibold text-white text-xl">See what AI-native looks like for your team</p>
+              <p className="font-display font-semibold text-white text-xl">See what {nextStageLabel} looks like for your team</p>
               <p className="text-sm text-secondary-foreground max-w-md">
-                Book a free 30-minute call. We&apos;ll walk you through exactly what AI-native companies at your stage are doing — and what it would take to get there.
+                Book a 30-minute call and we&apos;ll walk you through exactly what {nextStageLabel} companies are doing — and what it would take to get there.
               </p>
               <a
                 href="https://calendly.com/iamruiteles/teles-intro-call"
@@ -1188,6 +1196,8 @@ function HomeContent() {
                 Book a Call
               </a>
             </div>
+              )
+            })()}
 
           </div>
         </div>
