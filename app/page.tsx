@@ -420,7 +420,7 @@ function HomeContent() {
         remainingQuestions: remainingForScoring,
         sessionId: sessionIdRef.current,
         companyContext: companyContextRef.current || undefined,
-        conversationHistory: conversationHistoryRef.current,
+        conversationHistory: conversationIdRef.current ? [] : conversationHistoryRef.current,
         currentScores: benchmarkState.scores,
         conversationId: conversationIdRef.current,
       })
