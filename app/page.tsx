@@ -688,7 +688,7 @@ function HomeContent() {
               style={{ animationDelay: '280ms' }}
             >
               89% of enterprises are investing in AI, but only a fraction have built the systems that actually win deals.<br />
-              <em className="text-primary">Find out where you stand.</em>
+              <em className="text-primary">Find out where you stand</em>
             </p>
 
             <div className="mt-10 w-full max-w-xl fade-up" style={{ animationDelay: '380ms' }}>
@@ -725,7 +725,7 @@ function HomeContent() {
               className="mt-6 text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
               style={{ animationDelay: '460ms' }}
             >
-              Complete the benchmark and get the top 3 AI use cases for your context
+              Complete the benchmark and get a personalized AI Sales System roadmap
             </p>
 
             {/* Scroll hint */}
@@ -748,7 +748,8 @@ function HomeContent() {
 
             {/* Heading */}
             <h2 className="mt-6 font-display text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-              Your AI sales systems will be your GTM competitive advantage
+              AI Sales Systems as a competitive advantage
+
             </h2>
 
             {/* Cards grid */}
@@ -812,15 +813,16 @@ function HomeContent() {
               <div className="border border-border rounded-xl p-6 md:p-8 bg-card flex flex-col">
                 <p className="text-xs tracking-widest uppercase text-muted-foreground">03</p>
                 <h3 className="mt-3 font-display text-xl font-semibold text-white leading-snug">
-                  Get an implementation plan with personalised AI use cases
+                  Get Personalized AI Use Cases
+
                 </h3>
                 <p className="mt-4 text-xs tracking-wide uppercase text-muted-foreground">
-                  Receive a personalized roadmap:
+                  Receive a personalized roadmap with:
                 </p>
                 <ul className="mt-3 flex flex-col gap-2">
                   {[
                     'The top AI Use Cases for your context',
-                    'AI prompts that you can implement',
+                    'Prompts that you can implement today',
                     'Tactics on how to drive adoption',
                   ].map(item => (
                     <li key={item} className="flex items-start gap-2.5 text-sm text-secondary-foreground">
