@@ -725,7 +725,7 @@ function HomeContent() {
               className="mt-6 text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
               style={{ animationDelay: '460ms' }}
             >
-              Your AI sales systems will be your GTM competitive advantage
+              Complete the benchmark and get the top 3 AI use cases for your context
             </p>
 
             {/* Scroll hint */}
@@ -748,7 +748,7 @@ function HomeContent() {
 
             {/* Heading */}
             <h2 className="mt-6 font-display text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-              Complete the Benchmark, and you will:
+              Your AI sales systems will be your GTM competitive advantage
             </h2>
 
             {/* Cards grid */}
@@ -760,9 +760,6 @@ function HomeContent() {
                 <h3 className="mt-3 font-display text-xl font-semibold text-white leading-snug">
                   See How You Compare
                 </h3>
-                <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
-                  See how your sales systems compare to companies similar to yours.
-                </p>
                 <p className="mt-4 text-xs tracking-wide uppercase text-muted-foreground">
                   The benchmark evaluates how AI is used across:
                 </p>
@@ -788,9 +785,6 @@ function HomeContent() {
                 <h3 className="mt-3 font-display text-xl font-semibold text-white leading-snug">
                   Measure the Opportunity
                 </h3>
-                <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
-                  Your Sales Systems will become a competitive advantage.
-                </p>
                 <p className="mt-4 text-xs tracking-wide uppercase text-muted-foreground">
                   The benchmark results estimates your cost of opportunity:
                 </p>
@@ -820,17 +814,14 @@ function HomeContent() {
                 <h3 className="mt-3 font-display text-xl font-semibold text-white leading-snug">
                   Get an implementation plan with personalised AI use cases
                 </h3>
-                <p className="mt-3 text-sm text-secondary-foreground leading-relaxed">
-                  You will receive a personalized plan outlining the top use cases that drive business impact.
-                </p>
                 <p className="mt-4 text-xs tracking-wide uppercase text-muted-foreground">
-                  This includes example use cases &amp; prompts such as:
+                  Receive a personalized roadmap:
                 </p>
                 <ul className="mt-3 flex flex-col gap-2">
                   {[
-                    'AI meeting intelligence and automated follow-ups',
-                    'Deal risk detection and pipeline insights',
-                    'AI enablement copilots for objection handling and playbooks',
+                    'The top AI Use Cases for your context',
+                    'AI prompts that you can implement',
+                    'Tactics on how to drive adoption',
                   ].map(item => (
                     <li key={item} className="flex items-start gap-2.5 text-sm text-secondary-foreground">
                       <span className="mt-[5px] h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
@@ -875,7 +866,7 @@ function HomeContent() {
                 onClick={handleSubmit}
                 className="rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors"
               >
-                Benchmark Your AI Sales Systems
+                Get Personalized AI Use Cases
               </button>
               <p className="text-xs text-muted-foreground tracking-wide">
                 ⏱ Takes 6–10 minutes • No preparation required
