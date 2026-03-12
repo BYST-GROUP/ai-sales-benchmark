@@ -58,6 +58,7 @@ function HomeContent() {
   const [showOptions, setShowOptions] = useState(false)
   const [correction, setCorrection] = useState('')
   const [showFinalTyping, setShowFinalTyping] = useState(false)
+  const [isEnrichChatLoading, setIsEnrichChatLoading] = useState(false)
 
   // Benchmark state
   const [benchmarkState, setBenchmarkState] = useState<BenchmarkState>(createInitialBenchmarkState())
@@ -96,6 +97,9 @@ function HomeContent() {
   const didAutoStart = useRef(false)
   // Company context from enrichment — passed to benchmark-turn API for Single-LLM context
   const companyContextRef = useRef<string>('')
+  // Raw enrichment snapshot — stored so follow-up corrections can be applied by the LLM
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companySnapshotRef = useRef<Record<string, any> | null>(null)
   // Conversation history for Single-LLM mode (Anthropic) / fallback when no responseId yet
   const conversationHistoryRef = useRef<ConversationTurn[]>([])
   // OpenAI Conversations API: conversation ID for the entire benchmark session.
@@ -291,6 +295,8 @@ function HomeContent() {
         const enrichmentMsg = data.enrichment_message ?? "I couldn't find data for this domain. Can you tell me a bit about your company?"
         resolvedMessage.current = enrichmentMsg
         companyContextRef.current = enrichmentMsg
+        // Store raw snapshot for follow-up correction calls
+        companySnapshotRef.current = data._snapshot ?? data
         // Store pre-created OpenAI conversation ID to skip the extra round-trip on the first turn
         if (data.conversationId) conversationIdRef.current = data.conversationId
       }
@@ -337,7 +343,7 @@ function HomeContent() {
   // Scroll to bottom whenever chat updates
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping, showOptions, showFinalTyping, isBenchmarkLoading, isComputingReport, streamingMessage])
+  }, [messages, isTyping, showOptions, showFinalTyping, isBenchmarkLoading, isComputingReport, streamingMessage, isEnrichChatLoading])
 
   function handleLooksGood() {
     enrichmentAnswerRef.current = 'Looks good — the company information is accurate.'
@@ -347,16 +353,50 @@ function HomeContent() {
     setHasUserResponded(true)
   }
 
-  function handleCorrection(e: React.FormEvent) {
+  async function handleCorrection(e: React.FormEvent) {
     e.preventDefault()
     const trimmed = correction.trim()
-    if (!trimmed) return
-    enrichmentAnswerRef.current = trimmed
+    if (!trimmed || isEnrichChatLoading) return
+
     setMessages(prev => [...prev, { role: 'user', content: trimmed }])
     setCorrection('')
     setShowOptions(false)
-    setShowFinalTyping(true)
+    setIsEnrichChatLoading(true)
     setHasUserResponded(true)
+
+    try {
+      const res = await fetch('/api/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'follow_up',
+          userMessage: trimmed,
+          companySnapshot: companySnapshotRef.current ?? {},
+          sessionId: sessionIdRef.current,
+        }),
+      })
+      const data = await res.json()
+      setIsEnrichChatLoading(false)
+
+      // Merge any corrections the LLM applied back into the snapshot
+      if (companySnapshotRef.current) {
+        companySnapshotRef.current = { ...companySnapshotRef.current, ...data }
+      }
+
+      if (data.confirmed) {
+        // User confirmed — append correction note to company context, then start benchmark
+        enrichmentAnswerRef.current = trimmed
+        companyContextRef.current = companyContextRef.current + `\n\nUser correction: ${trimmed}`
+        setShowFinalTyping(true)
+      } else {
+        // Not confirmed — stream LLM reply then re-show options for another round
+        const reply = data.enrichment_message ?? "Got it! Does everything look accurate now, or is there anything else to update?"
+        streamAiMessage(reply, () => setShowOptions(true))
+      }
+    } catch {
+      setIsEnrichChatLoading(false)
+      streamAiMessage("Sorry, something went wrong. Does the information look accurate, or would you like to correct anything?", () => setShowOptions(true))
+    }
   }
 
   // When "Great, let's begin..." animation ends, stream intro then ask LLM for Q1
@@ -814,6 +854,8 @@ function HomeContent() {
                 </p>
               </div>
             )}
+
+            {isEnrichChatLoading && <AiTypingBubble />}
 
             {showFinalTyping && (
               <div className="flex flex-col gap-2">
