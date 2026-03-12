@@ -229,13 +229,14 @@ export function buildOpenAIFollowUpMessage({
 }): string {
   const nextPart = isComplete
     ? 'The benchmark is now complete. Close the conversation warmly in the "message" field.'
-    : `Then ask the next question in the "message" field. Next question dimension: ${nextquestionid}. Next question text: "${nextquestiontext}"`
+    : `Then ask the next question in the "message" field. Next question dimension:${nextquestionid}. Next question text: ${nextquestiontext}`
 
-  return `"${answer}"
+  return `User answer:
+${answer}
 
 Analyze the user answer.
-Determine how many benchmark dimensions were answered.
-Score all applicable dimensions using the BYST maturity framework.
+Determine ALL the benchmark questions answered in this user answer.
+Score ALL answered questions using the BYST maturity framework.
 ${nextPart}
 Return JSON only.`
 }
