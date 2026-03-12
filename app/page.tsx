@@ -517,13 +517,22 @@ function HomeContent() {
         setBenchmarkPhase('complete')
         setCurrentQuestionId(null)
 
-        // Build the conversation payload for the report LLM call
-        const allScores = updatedState.scores
-        const reportConversation = Object.entries(updatedState.answers).map(([questionId, answer]) => ({
-          questionId,
-          answer,
-          score: allScores[questionId] ?? 2,
-        }))
+        // Build the conversation payload for the report LLM call.
+        // Iterate over ALL scored questions in canonical order (Q1–Q9), not just
+        // questions that had their own answer turn.  When the LLM pre-scores future
+        // questions from a comprehensive answer those questions have a score in
+        // updatedState.scores but no entry in updatedState.answers — they were
+        // previously excluded from the report, so the report LLM only saw 1–3
+        // scores instead of all 9.
+        const allScores  = updatedState.scores
+        const allAnswers = updatedState.answers
+        const reportConversation = ACTIVE_QUESTION_IDS
+          .filter(questionId => allScores[questionId] !== undefined)
+          .map(questionId => ({
+            questionId,
+            answer: allAnswers[questionId] ?? '', // empty for pre-scored questions
+            score:  allScores[questionId],
+          }))
 
         fetch('/api/log', {
           method: 'POST',
