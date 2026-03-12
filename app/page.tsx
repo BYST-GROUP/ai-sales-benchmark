@@ -18,6 +18,52 @@ interface Message {
   content: string
 }
 
+/**
+ * Renders LLM text that may contain bullet points.
+ * Handles both newline-separated ("- item\n- item") and inline ("- item - item") formats.
+ * Falls back to plain paragraphs for prose text without bullets.
+ */
+function RichText({ text }: { text: string }) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+
+  // Expand any single line that packs multiple bullets inline: "- A - B - C"
+  const segments: string[] = []
+  for (const line of lines) {
+    if (line.startsWith('- ')) {
+      const parts = line.split(/ - /)
+      for (const part of parts) {
+        const clean = part.replace(/^-\s*/, '').trim()
+        if (clean) segments.push(clean)
+      }
+    } else {
+      segments.push(line)
+    }
+  }
+
+  const isBulletList = lines.some(l => l.startsWith('- '))
+
+  if (isBulletList) {
+    return (
+      <ul className="flex flex-col gap-2">
+        {segments.map((item, i) => (
+          <li key={i} className="flex items-start gap-2 text-sm text-secondary-foreground leading-relaxed">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary mt-[0.4rem] flex-shrink-0" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {segments.map((item, i) => (
+        <p key={i} className="text-sm text-secondary-foreground leading-relaxed">{item}</p>
+      ))}
+    </div>
+  )
+}
+
 const STATUSES = [
   (d: string) => `Analysing ${d}...`,
   () => 'Fetching company data...',
@@ -1170,7 +1216,7 @@ function HomeContent() {
                   {benchmarkReport.currentStage.whatItLooksLike && (
                     <div className="flex flex-col gap-1.5">
                       <p className="text-xs font-medium text-primary uppercase tracking-wider">What it looks like</p>
-                      <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.currentStage.whatItLooksLike}</p>
+                      <RichText text={benchmarkReport.currentStage.whatItLooksLike} />
                     </div>
                   )}
                   {benchmarkReport.currentStage.theProblem && (
@@ -1178,7 +1224,7 @@ function HomeContent() {
                       <div className="h-px bg-border" />
                       <div className="flex flex-col gap-1.5">
                         <p className="text-xs font-medium text-primary uppercase tracking-wider">The Problem</p>
-                        <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.currentStage.theProblem}</p>
+                        <RichText text={benchmarkReport.currentStage.theProblem} />
                       </div>
                     </>
                   )}
@@ -1231,12 +1277,12 @@ function HomeContent() {
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1.5">
                     <p className="text-xs font-medium text-primary uppercase tracking-wider">What it looks like</p>
-                    <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.nextStage.whatItLooksLike}</p>
+                    <RichText text={benchmarkReport.nextStage.whatItLooksLike} />
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex flex-col gap-1.5">
                     <p className="text-xs font-medium text-primary uppercase tracking-wider">Why it matters</p>
-                    <p className="text-sm text-secondary-foreground leading-relaxed">{benchmarkReport.nextStage.whyItMatters}</p>
+                    <RichText text={benchmarkReport.nextStage.whyItMatters} />
                   </div>
                   <div className="h-px bg-border" />
                   <div className="grid grid-cols-2 gap-3">
