@@ -29,6 +29,22 @@ export async function createOpenAIConversation(): Promise<string> {
   return conversation.id
 }
 
+/**
+ * Returns true when the OpenAI error is the "orphaned reasoning item" error.
+ * This happens when a prior call timed out after the model emitted a reasoning
+ * token but before it emitted the final message — leaving the server-side
+ * conversation in a broken state.
+ */
+function isOrphanedReasoningError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  return err.message.includes("of type 'reasoning' was provided without its required following item")
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function callResponsesAPI(openai: OpenAI, params: Record<string, unknown>): Promise<any> {
+  return (openai.responses.create as (p: Record<string, unknown>) => Promise<unknown>)(params)
+}
+
 export class OpenAILLMClient implements LLMClient {
   async complete({ promptId, userMessage, variables, maxTokens = 1024, conversationId }: LLMCallInput): Promise<LLMCallOutput> {
     if (!promptId) {
@@ -55,8 +71,7 @@ export class OpenAILLMClient implements LLMClient {
     // `input`     = the rendered template string (company context + question + answer + instructions).
     // `variables` = fills any {{placeholder}} slots in the stored prompt template.
     // `conversation` = the persistent conv_... ID that carries the full conversation history.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const response = await (openai.responses.create as (params: Record<string, unknown>) => Promise<any>)({
+    const params = {
       prompt: {
         id: promptId,
         ...(variables ? { variables } : {}),
@@ -65,7 +80,25 @@ export class OpenAILLMClient implements LLMClient {
       max_output_tokens: maxTokens,
       store: true,
       conversation: convId,
-    })
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let response: any
+    try {
+      response = await callResponsesAPI(openai, params)
+    } catch (err) {
+      // Orphaned reasoning item: a prior call timed out after the model emitted a
+      // reasoning token but before it emitted the final message, leaving the
+      // server-side conversation in a broken state.
+      // Recovery: discard the broken conversation, start a fresh one, retry once.
+      if (isOrphanedReasoningError(err)) {
+        console.warn('[OpenAILLMClient] Orphaned reasoning item detected — resetting conversation and retrying.')
+        convId = await createOpenAIConversation()
+        response = await callResponsesAPI(openai, { ...params, conversation: convId })
+      } else {
+        throw err
+      }
+    }
 
     // output_text is the convenience accessor for message-type output items.
     // Fall back to scanning output array for text content if output_text is empty.
