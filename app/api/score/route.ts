@@ -4,7 +4,7 @@ import { appendLog } from '@/lib/logger'
 import { SCORING_SYSTEM_PROMPT, buildScoringUserMessage } from '@/lib/benchmark/prompts/multiLlmPrompts'
 import { getLLMClient, OPENAI_PROMPT_IDS } from '@/lib/llm'
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {

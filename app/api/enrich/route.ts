@@ -5,7 +5,7 @@ import { appendLog } from '@/lib/logger'
 import { getCachedEnrichment, setCachedEnrichment } from '@/lib/enrichment-cache'
 import { getLLMClient, OPENAI_PROMPT_IDS, LLM_PROVIDER, createOpenAIConversation, type LLMUsage } from '@/lib/llm'
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 interface EnrichLLMResponse {
   display_name: string

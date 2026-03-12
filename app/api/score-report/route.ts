@@ -10,7 +10,7 @@ import {
 } from '@/lib/benchmark/prompts/reportPrompt'
 import type { BenchmarkReport } from '@/lib/benchmark-state'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export async function POST(req: NextRequest) {
   try {

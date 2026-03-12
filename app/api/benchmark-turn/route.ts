@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getBenchmarkService } from '@/lib/benchmark/services/BenchmarkConversationService'
 import { BenchmarkTurnInput } from '@/lib/benchmark/types'
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
