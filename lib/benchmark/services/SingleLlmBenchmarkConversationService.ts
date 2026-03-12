@@ -50,9 +50,8 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       const currentquestiontext = QUESTION_MAP[currentQuestionId]?.text ?? currentQuestionId
 
       userMessage = buildOpenAIFollowUpMessage({
-        currentquestiontext,
         answer,
-        nextquestiontext: nextQuestionText,
+        nextquestionid: nextQuestionId,
         isComplete,
       })
       variables   = {

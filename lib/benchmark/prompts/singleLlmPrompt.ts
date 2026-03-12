@@ -214,27 +214,27 @@ Return JSON only.`
 /**
  * Builds a lean follow-up message for non-START OpenAI turns.
  * Omits company context — the Conversations API already has it in history from the START turn.
- * The app supplies the next question so the LLM doesn't need to track ordering.
+ * The app supplies the next question ID so the LLM doesn't need to track ordering.
  */
 export function buildOpenAIFollowUpMessage({
-  currentquestiontext,
   answer,
-  nextquestiontext,
+  nextquestionid,
   isComplete,
 }: {
-  currentquestiontext: string
   answer: string
-  nextquestiontext: string | null
+  nextquestionid: string | null
   isComplete: boolean
 }): string {
   const nextPart = isComplete
     ? 'The benchmark is now complete. Close the conversation warmly.'
-    : `Then ask the next question: "${nextquestiontext}"`
+    : `Then ask the next question. Next question dimension: ${nextquestionid}`
 
-  return `Current question: "${currentquestiontext}"
-User's answer: "${answer}"
+  return `"${answer}"
 
-Score this answer. ${nextPart}
+Analyze the user answer.
+Determine how many benchmark dimensions were answered.
+Score all applicable dimensions using the BYST maturity framework.
+${nextPart}
 Return JSON only.`
 }
 
