@@ -88,11 +88,13 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       }
     }
 
-    const scores: Record<string, number> = parsed?.scores ?? {}
-
-    // Always ensure the current question gets a score — but not for START.
-    if (!isStart && !scores[currentQuestionId]) {
-      scores[currentQuestionId] = 2
+    // Only keep the score for the question being answered in this turn (not START).
+    // The LLM sometimes pre-scores future questions from a comprehensive answer, but
+    // question ordering is app-controlled — allowing pre-scores causes nextQuestionId
+    // to point to an already-scored question, making it get asked a second time.
+    let scores: Record<string, number> = parsed?.scores ?? {}
+    if (!isStart) {
+      scores = { [currentQuestionId]: scores[currentQuestionId] ?? 2 }
     }
 
     const displayMessage    = parsed?.message ?? undefined
