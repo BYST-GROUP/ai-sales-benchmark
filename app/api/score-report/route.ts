@@ -7,26 +7,37 @@ import {
   buildReportUserMessage,
   buildReportVariables,
   type ReportConversationEntry,
+  type ReportComputedValues,
 } from '@/lib/benchmark/prompts/reportPrompt'
 import type { BenchmarkReport } from '@/lib/benchmark-state'
+import { computeMaturityStageLabel } from '@/lib/benchmark-state'
 
 export const maxDuration = 120
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { sessionId, companyContext, conversation } = body as {
+    const { sessionId, companyContext, conversation, totalScore, currentStage, nextStage } = body as {
       sessionId?: string
       companyContext?: string
       conversation: ReportConversationEntry[]
+      totalScore?: number
+      currentStage?: string
+      nextStage?: string | null
     }
 
     if (!conversation || conversation.length === 0) {
       return NextResponse.json({ error: 'conversation is required' }, { status: 400 })
     }
 
-    const userMessage = buildReportUserMessage(companyContext, conversation)
-    const variables   = buildReportVariables(companyContext, conversation)
+    // Build computed values block when app-layer scoring data is provided
+    const computed: ReportComputedValues | undefined =
+      totalScore !== undefined && currentStage
+        ? { totalScore, currentStage, nextStage: nextStage ?? null }
+        : undefined
+
+    const userMessage = buildReportUserMessage(companyContext, conversation, computed)
+    const variables   = buildReportVariables(companyContext, conversation, computed)
 
     // Use OpenAI stored prompt if configured; otherwise fall back to Anthropic
     // with the inline REPORT_SYSTEM_PROMPT (no stored prompt required)
@@ -59,6 +70,19 @@ export async function POST(req: NextRequest) {
         error: 'Failed to parse report from LLM',
         _raw: text.slice(0, 2000), // truncated for safety
       }, { status: 502 })
+    }
+
+    // Override LLM-computed score fields with app-computed values (deterministic).
+    // The LLM generates the qualitative sections; the app owns the numbers.
+    if (computed) {
+      report.totalScore   = computed.totalScore
+      report.maturityLabel = computed.currentStage
+      report.maturityStage = computeMaturityStageLabel(computed.currentStage)
+      if (computed.nextStage === null) {
+        report.nextStage = null
+      } else if (computed.nextStage && report.nextStage) {
+        report.nextStage.title = computed.nextStage
+      }
     }
 
     await appendLog({

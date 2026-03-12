@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { ACTIVE_QUESTIONS, ACTIVE_QUESTION_IDS, QUESTION_MAP } from '@/lib/questions'
-import { BenchmarkState, BenchmarkReport, createInitialBenchmarkState, applyScores } from '@/lib/benchmark-state'
+import { BenchmarkState, BenchmarkReport, createInitialBenchmarkState, applyScores, computeNextStage } from '@/lib/benchmark-state'
 import { processBenchmarkTurn } from '@/lib/benchmark-scoring'
 import type { ConversationTurn } from '@/lib/benchmark/types'
 import type { MaturityLabel } from '@/lib/results-content'
@@ -611,6 +611,10 @@ function HomeContent() {
               sessionId: sessionIdRef.current,
               companyContext: companyContextRef.current || undefined,
               conversation: reportConversation,
+              // App-computed maturity values — the route will override LLM output with these
+              totalScore:   updatedState.totalScore,
+              currentStage: updatedState.maturityLabel,
+              nextStage:    computeNextStage(updatedState.maturityLabel),
             }),
           })
             .then(r => r.json())

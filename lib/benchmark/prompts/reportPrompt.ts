@@ -29,6 +29,13 @@ export interface ReportConversationEntry {
   score: number
 }
 
+/** App-computed maturity values passed into the report prompt. */
+export interface ReportComputedValues {
+  totalScore: number
+  currentStage: string       // e.g. 'AI Enabled'
+  nextStage: string | null   // e.g. 'AI Leading', or null if AI Native
+}
+
 /**
  * System prompt for the final report LLM call (Anthropic mode).
  *
@@ -40,21 +47,18 @@ export interface ReportConversationEntry {
  */
 export const REPORT_SYSTEM_PROMPT = `You are a sales AI maturity analyst. You have just completed a structured benchmark interview with a sales organisation.
 
-Your job is to analyse their answers, calculate their maturity scores, and generate a personalised assessment report grounded in what they actually said.
+The application has already computed the total score, current stage, and next stage deterministically. These values are provided in the user message — use them exactly as given. Do NOT recompute the total score or maturity stage.
 
-## Maturity Framework
+Your job is to generate the personalised qualitative sections of the report based on what the organisation actually said.
+
+## Maturity Reference
 
 **Pillars and questions:**
 - Pillar 1 — AE Systems: Q1 (AI day-to-day usage), Q2 (call notes & CRM updates), Q3 (meeting prep), Q4 (handling technical questions)
 - Pillar 2 — Leadership Systems: Q5 (spotting underperformance), Q6 (top performer insights), Q7 (feedback frequency)
 - Pillar 3 — Enablement Systems: Q8 (sales onboarding), Q9 (playbooks & battlecards)
 
-**Scoring:**
-- Each question was scored 1–5 during the benchmark
-- Pillar score = average of its questions normalised to 0–100: Math.round(((avg - 1) / 4) × 100)
-- Total score = Math.round((pillar1 + pillar2 + pillar3) / 3)
-
-**Maturity labels (by total score):**
+**Maturity stages (for context only — use the provided values, not these to compute):**
 - 0–20:   AI Laggard       — Stage 1: The Wild West
 - 21–40:  AI Experimenting  — Stage 2: Emerging Assistants
 - 41–65:  AI Enabled        — Stage 3: Connected Workflows
@@ -74,18 +78,18 @@ Write everything grounded in what the organisation actually said — not generic
 
 ## Output Format
 
-Return ONLY valid JSON:
+Return ONLY valid JSON. Use the exact totalScore, maturityLabel (= Current Stage), and maturityStage provided in the user message.
 {
   "pillarScores": { "pillar1": 65, "pillar2": 40, "pillar3": 80 },
-  "totalScore": 62,
-  "maturityLabel": "AI Enabled",
-  "maturityStage": "Stage 3: Connected Workflows",
+  "totalScore": <use provided Total Score>,
+  "maturityLabel": "<use provided Current Stage>",
+  "maturityStage": "<full stage label, e.g. Stage 3: Connected Workflows>",
   "currentStage": {
     "whatItLooksLike": "2–3 sentences about what the team is currently doing.",
     "theProblem": "2–3 sentences about the pain and outcomes they are experiencing."
   },
   "nextStage": {
-    "title": "AI Leading",
+    "title": "<use provided Next Stage>",
     "whatItLooksLike": "...",
     "whyItMatters": "...",
     "impactStats": [
@@ -97,7 +101,7 @@ Return ONLY valid JSON:
   }
 }
 
-If the organisation is already AI Native, set "nextStage" to null.
+If Next Stage is null (organisation is already AI Native), set "nextStage" to null.
 No text outside the JSON object.`
 
 /**
@@ -106,17 +110,24 @@ No text outside the JSON object.`
 export function buildReportUserMessage(
   companyContext: string | null | undefined,
   conversation: ReportConversationEntry[],
+  computed?: ReportComputedValues,
 ): string {
   const historyText = formatConversationHistory(conversation)
   const scoresJson  = JSON.stringify(
     Object.fromEntries(conversation.map(({ questionId, score }) => [questionId, score]))
   )
 
-  return `${companyContext ? `Company context:\n${companyContext}\n\n` : ''}Benchmark conversation — questions, answers, and scores:
+  const computedSection = computed
+    ? `Total Score: ${computed.totalScore}
+Current Stage: ${computed.currentStage}
+Next Stage: ${computed.nextStage ?? 'None (already AI Native)'}
+`
+    : ''
 
+  return `${companyContext ? `Company context: ${companyContext}\n\n` : ''}Benchmark conversation — questions, answers, and scores:
 ${historyText}
 
-Raw scores: ${scoresJson}
+${computedSection}Raw scores: ${scoresJson}
 
 Generate the full personalised assessment report.`
 }
@@ -130,6 +141,9 @@ Generate the full personalised assessment report.`
  *   {{conversationhistory}} — formatted Q&A + scores (alias: {{historytext}})
  *   {{historytext}}         — same as conversationhistory (for prompt compatibility)
  *   {{scoresjson}}          — raw scores as JSON object
+ *   {{totalscore}}          — app-computed total score (0–100)
+ *   {{currentstage}}        — app-computed maturity label (e.g. 'AI Enabled')
+ *   {{nextstage}}           — app-computed next stage label, or empty if AI Native
  *
  * Stub variables (empty — included so prompts that reference them don't error):
  *   {{answeredcount}}, {{totalcount}}, {{currentquestionid}},
@@ -138,6 +152,7 @@ Generate the full personalised assessment report.`
 export function buildReportVariables(
   companyContext: string | null | undefined,
   conversation: ReportConversationEntry[],
+  computed?: ReportComputedValues,
 ): Record<string, string> {
   const conversationHistory = formatConversationHistory(conversation)
   const scoresJson = JSON.stringify(
@@ -149,6 +164,10 @@ export function buildReportVariables(
     conversationhistory:  conversationHistory,
     historytext:          conversationHistory,   // alias — same content, different placeholder name
     scoresjson:           scoresJson,
+    // App-computed maturity values — passed so the LLM uses them rather than recomputing
+    totalscore:           computed ? String(computed.totalScore) : '',
+    currentstage:         computed?.currentStage ?? '',
+    nextstage:            computed?.nextStage ?? '',
     // Stubs for variables present in other prompts — prevents 400 errors if
     // OPENAI_SCORE_REPORT_PROMPT_ID points to a prompt that shares these slots
     answeredcount:        String(conversation.length),
