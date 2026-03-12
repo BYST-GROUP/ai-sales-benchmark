@@ -1266,7 +1266,7 @@ function renderInline(line: string, key: number) {
 function AiBubble({ content }: { content: string }) {
   const lines = content.split('\n')
   return (
-    <div className="max-w-xl text-sm text-white leading-relaxed py-1 flex flex-col gap-1">
+    <div className="max-w-xl text-sm text-white leading-relaxed py-1 flex flex-col gap-2">
       {lines.map((line, i) => {
         // Bullet lines: lines starting with "• " or "- " or "* "
         const bulletMatch = line.match(/^([•\-*])\s+(.*)$/)
@@ -1278,8 +1278,8 @@ function AiBubble({ content }: { content: string }) {
             </div>
           )
         }
-        // Empty line → small spacer
-        if (line.trim() === '') return <div key={i} className="h-1" />
+        // Empty line → spacer
+        if (line.trim() === '') return <div key={i} className="h-2" />
         return <div key={i}>{renderInline(line, i)}</div>
       })}
     </div>
