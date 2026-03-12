@@ -59,6 +59,7 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
         currentquestiontext,
         answer,
         companycontext:      '', // already in conversation history
+        nextquestionid:      nextQuestionId ?? '',
       }
     } else {
       // Anthropic / no-thread fallback — embed full context in message.
