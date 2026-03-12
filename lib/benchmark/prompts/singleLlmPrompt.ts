@@ -214,20 +214,22 @@ Return JSON only.`
 /**
  * Builds a lean follow-up message for non-START OpenAI turns.
  * Omits company context — the Conversations API already has it in history from the START turn.
- * The app supplies the next question ID so the LLM doesn't need to track ordering.
+ * The app supplies the next question ID and full text so the LLM can generate a proper message.
  */
 export function buildOpenAIFollowUpMessage({
   answer,
   nextquestionid,
+  nextquestiontext,
   isComplete,
 }: {
   answer: string
   nextquestionid: string | null
+  nextquestiontext: string | null
   isComplete: boolean
 }): string {
   const nextPart = isComplete
-    ? 'The benchmark is now complete. Close the conversation warmly.'
-    : `Then ask the next question. Next question dimension: ${nextquestionid}`
+    ? 'The benchmark is now complete. Close the conversation warmly in the "message" field.'
+    : `Then ask the next question in the "message" field. Next question dimension: ${nextquestionid}. Next question text: "${nextquestiontext}"`
 
   return `"${answer}"
 

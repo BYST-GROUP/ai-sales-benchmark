@@ -51,7 +51,8 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
 
       userMessage = buildOpenAIFollowUpMessage({
         answer,
-        nextquestionid: nextQuestionId,
+        nextquestionid:   nextQuestionId,
+        nextquestiontext: nextQuestionText,
         isComplete,
       })
       variables   = {
@@ -60,6 +61,8 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
         answer,
         companycontext:      '', // already in conversation history
         nextquestionid:      nextQuestionId ?? '',
+        // nextquestiontext is passed via the input message only — not as a stored-prompt variable
+        // to avoid 400 errors if the stored prompt doesn't declare {{nextquestiontext}}.
       }
     } else {
       // Anthropic / no-thread fallback — embed full context in message.
