@@ -383,7 +383,34 @@ function HomeContent() {
         companySnapshotRef.current = { ...companySnapshotRef.current, ...data }
       }
 
-      if (data.confirmed) {
+      if (data.re_enrich) {
+        // Company name was wrong — re-run full enrichment with the corrected name
+        const correctedName: string = data.display_name ?? ''
+        const bridgeMsg = data.enrichment_message ?? `Got it! Let me look up ${correctedName || 'your company'} properly...`
+        streamAiMessage(bridgeMsg, async () => {
+          setIsEnrichChatLoading(true)
+          try {
+            const res2 = await fetch('/api/enrich', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                domain: submittedDomain.current,
+                companyNameHint: correctedName || undefined,
+                sessionId: sessionIdRef.current,
+              }),
+            })
+            const data2 = await res2.json()
+            setIsEnrichChatLoading(false)
+            const newMsg = data2.enrichment_message ?? "Here's what I found — does this look right?"
+            companyContextRef.current = newMsg
+            companySnapshotRef.current = data2._snapshot ?? data2
+            streamAiMessage(newMsg, () => setShowOptions(true))
+          } catch {
+            setIsEnrichChatLoading(false)
+            streamAiMessage("Sorry, something went wrong. Does the information look accurate now?", () => setShowOptions(true))
+          }
+        })
+      } else if (data.confirmed) {
         // User confirmed — append correction note to company context, then start benchmark
         enrichmentAnswerRef.current = trimmed
         companyContextRef.current = companyContextRef.current + `\n\nUser correction: ${trimmed}`

@@ -21,6 +21,7 @@ interface EnrichLLMResponse {
   has_free_plan: boolean
   enrichment_message: string
   confirmed?: boolean
+  re_enrich?: boolean
 }
 
 // ─── Prompts ───────────────────────────────────────────────────────────────────
@@ -119,12 +120,16 @@ function parseEnrichJSON(text: string): EnrichLLMResponse {
 async function runEnrichLLM(
   domain: string,
   websiteText: string,
+  companyNameHint?: string,
 ): Promise<{ data: EnrichLLMResponse; usage?: LLMUsage }> {
   const llm = getLLMClient()
+  const nameHintLine = companyNameHint
+    ? `\n\nImportant: The company's name is "${companyNameHint}". Use this as display_name.`
+    : ''
   const { text, usage } = await llm.complete({
     promptId: OPENAI_PROMPT_IDS.enrich,
     systemPrompt: ENRICH_SYSTEM_PROMPT,
-    userMessage: `Domain: ${domain}\n\nWebsite content:\n${websiteText || 'No website content available.'}`,
+    userMessage: `Domain: ${domain}\n\nWebsite content:\n${websiteText || 'No website content available.'}${nameHintLine}`,
     maxTokens: 4096,
   })
   return { data: parseEnrichJSON(text), usage }
@@ -155,16 +160,26 @@ Instructions:
 
 2. If CONFIRMING:
    - Set "confirmed": true
+   - Set "re_enrich": false
    - Set "enrichment_message" to a brief warm one-liner (e.g. "Perfect — let's get started!")
    - Return all snapshot fields unchanged
 
-3. If CORRECTING or QUESTIONING:
+3. If CORRECTING or QUESTIONING (field-level correction — NOT a company name change):
    - Set "confirmed": false
+   - Set "re_enrich": false
    - Apply the correction to the relevant snapshot field(s)
    - Set "enrichment_message" to: one sentence acknowledging the correction or answering the question, then end with "Does everything look accurate now, or is there anything else to update?"
    - Leave all other fields unchanged
 
-Return ONLY a valid JSON object using the exact same schema as the snapshot, plus "confirmed": boolean. No preamble, no markdown.`
+4. If the user is correcting the COMPANY NAME (display_name) — including spelling corrections like "Synch" → "Sinch":
+   - Set "confirmed": false
+   - Set "re_enrich": true
+   - Update "display_name" to the corrected company name
+   - Set "enrichment_message" to a short one-liner, e.g. "Got it! Let me look up [corrected name] properly..."
+   - Leave all other fields unchanged
+   Note: even a small name change can mean the enrichment pulled data for the wrong company entirely, so a full re-fetch is needed.
+
+Return ONLY a valid JSON object using the exact same schema as the snapshot, plus "confirmed": boolean and "re_enrich": boolean. No preamble, no markdown.`
 
   const { text, usage } = await llm.complete({
     promptId: OPENAI_PROMPT_IDS.enrich,
@@ -214,23 +229,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'domain is required' }, { status: 400 })
     }
 
-    // Step 1: Check cache — skip LLM entirely if fresh data exists (< 6 months old)
-    const cached = await getCachedEnrichment(domain)
-    if (cached) {
-      await appendLog({ event: 'enrich_cache_hit', sessionId, domain })
-      const conversationId = LLM_PROVIDER === 'openai' ? await createOpenAIConversation() : undefined
-      return NextResponse.json({
-        ...cached.profile,
-        enrichment_message: cached.enrichment_message,
-        ...(conversationId ? { conversationId } : {}),
-      })
+    // Optional hint passed when re-enriching after a company name correction.
+    // When present, skip cache (data may belong to the wrong company) and pass
+    // the hint to the LLM so it uses the correct display_name.
+    const companyNameHint: string | undefined = body?.companyNameHint?.trim() || undefined
+
+    // Step 1: Check cache — skip if a name hint is provided (stale/wrong company data)
+    if (!companyNameHint) {
+      const cached = await getCachedEnrichment(domain)
+      if (cached) {
+        await appendLog({ event: 'enrich_cache_hit', sessionId, domain })
+        const conversationId = LLM_PROVIDER === 'openai' ? await createOpenAIConversation() : undefined
+        return NextResponse.json({
+          ...cached.profile,
+          enrichment_message: cached.enrichment_message,
+          ...(conversationId ? { conversationId } : {}),
+        })
+      }
     }
 
     // Step 2: Fetch website text
     const websiteText = await fetchWebsiteText(domain)
 
     // Step 3: Single LLM call — infers all company data + generates enrichment message
-    const { data: enrichResult, usage: tokenUsage } = await runEnrichLLM(domain, websiteText)
+    const { data: enrichResult, usage: tokenUsage } = await runEnrichLLM(domain, websiteText, companyNameHint)
 
     // Step 4: Build CompanyProfile using LLM data + business logic
     const customerSegment = enrichResult.customer_segment ?? 'Mid-Market'
