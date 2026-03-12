@@ -39,7 +39,11 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
     let variables: Record<string, string>
 
     if (isStart) {
-      variables   = buildStartVariables(input)
+      variables   = {
+        ...buildStartVariables(input),
+        // Stored prompt requires {{nextquestionid}} on every turn — Q1 is always next at START.
+        nextquestionid: nextQuestionId ?? '',
+      }
       userMessage = buildOpenAIInputMessage({
         companycontext:   variables.companycontext,
         answer:           variables.answer,
@@ -75,7 +79,7 @@ export class SingleLlmBenchmarkConversationService implements BenchmarkConversat
       promptId: OPENAI_PROMPT_IDS.singleLlm,
       userMessage,
       variables,
-      maxTokens: 2048, // reasoning models need headroom for thinking + JSON output
+      maxTokens: 8192, // reasoning models consume tokens for thinking; 2048 was exhausted before output
       conversationId,
     })
 
