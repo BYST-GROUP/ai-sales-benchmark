@@ -118,6 +118,14 @@ function HomeContent() {
   // Single-LLM mode: options returned by the AI (falls back to QUESTION_MAP options in multi mode)
   const [currentOptions, setCurrentOptions] = useState<string[] | undefined>(undefined)
 
+  // Use-cases email capture state
+  const [useCasesEmail, setUseCasesEmail] = useState('')
+  const [useCasesUrl, setUseCasesUrl] = useState<string | null>(null)
+  const [isSubmittingEmail, setIsSubmittingEmail] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const [showExitPopup, setShowExitPopup] = useState(false)
+  const exitPopupShownRef = useRef(false)
+
   // Streaming state
   const [streamingMessage, setStreamingMessage] = useState<string | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
@@ -162,6 +170,74 @@ function HomeContent() {
       recognitionRef.current?.stop()
     }
   }, [])
+
+  // ── Use-cases email submission ─────────────────────────────────────────────
+  async function handleUseCasesSubmit(e?: React.FormEvent) {
+    e?.preventDefault()
+    if (!useCasesEmail.trim() || isSubmittingEmail) return
+    setEmailError('')
+    setIsSubmittingEmail(true)
+
+    try {
+      const res = await fetch('/api/generate-use-cases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: useCasesEmail.trim(),
+          company_name: companySnapshotRef.current?.display_name ?? submittedDomain.current,
+          total_score: benchmarkState.totalScore,
+          pillar_1_score: benchmarkState.pillarScores.pillar1,
+          pillar_2_score: benchmarkState.pillarScores.pillar2,
+          pillar_3_score: benchmarkState.pillarScores.pillar3,
+          industry: companySnapshotRef.current?.product_type,
+          estimated_acv: companySnapshotRef.current?.estimated_acv != null
+            ? String(companySnapshotRef.current.estimated_acv)
+            : undefined,
+          estimated_aes: companySnapshotRef.current?.estimated_ae_count,
+        }),
+      })
+
+      if (!res.ok) {
+        setEmailError('Something went wrong. Please try again.')
+        return
+      }
+
+      const data = await res.json()
+      setUseCasesUrl(data.url)
+      setShowExitPopup(false)
+    } catch {
+      setEmailError('Something went wrong. Please try again.')
+    } finally {
+      setIsSubmittingEmail(false)
+    }
+  }
+
+  // ── Exit-intent detection (results phase only) ─────────────────────────────
+  useEffect(() => {
+    if (phase !== 'results') return
+
+    function handleMouseLeave(e: MouseEvent) {
+      if (e.clientY > 0) return // only trigger when cursor exits top of viewport
+      if (exitPopupShownRef.current || useCasesUrl) return
+      exitPopupShownRef.current = true
+      setShowExitPopup(true)
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState !== 'hidden') return
+      if (exitPopupShownRef.current || useCasesUrl) return
+      exitPopupShownRef.current = true
+      setShowExitPopup(true)
+    }
+
+    document.documentElement.addEventListener('mouseleave', handleMouseLeave)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.documentElement.removeEventListener('mouseleave', handleMouseLeave)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [phase, useCasesUrl])
 
   // ── Auto-start benchmark when arriving via /benchmark/company/[slug] ─────────
   useEffect(() => {
@@ -822,7 +898,7 @@ function HomeContent() {
                 <ul className="mt-3 flex flex-col gap-2">
                   {[
                     'The top AI Use Cases for your context',
-                    'Prompts that you can implement today',
+                    'AI Prompts that you can implement today',
                     'Tactics on how to drive adoption',
                   ].map(item => (
                     <li key={item} className="flex items-start gap-2.5 text-sm text-secondary-foreground">
@@ -1294,7 +1370,39 @@ function HomeContent() {
               </div>
             )}
 
-            {/* 6 — CTA */}
+            {/* 6 — Use Cases CTA */}
+            <div className="border border-primary/30 rounded-xl p-8 flex flex-col items-center text-center gap-4 bg-primary/5">
+              <p className="font-display font-semibold text-white text-xl">Personalized AI Use Cases</p>
+              <p className="text-sm text-secondary-foreground max-w-md">
+                Receive the top 3 AI Use Cases personalized for your current situation
+              </p>
+              {useCasesUrl ? (
+                <p className="mt-2 text-sm font-medium text-primary">
+                  ✓ Check your email inbox
+                </p>
+              ) : (
+                <form onSubmit={handleUseCasesSubmit} className="mt-2 flex flex-col items-center gap-3 w-full max-w-sm">
+                  <input
+                    type="email"
+                    required
+                    placeholder="you@company.com"
+                    value={useCasesEmail}
+                    onChange={e => { setUseCasesEmail(e.target.value); setEmailError('') }}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-white placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  {emailError && <p className="text-sm text-red-400">{emailError}</p>}
+                  <button
+                    type="submit"
+                    disabled={isSubmittingEmail}
+                    className="rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {isSubmittingEmail ? 'Generating...' : 'Get AI Prompts'}
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* 7 — Book a Call CTA */}
             {(() => {
               const nextStageLabel =
                 benchmarkReport === null
@@ -1323,6 +1431,50 @@ function HomeContent() {
           </div>
         </div>
       </div>
+
+      {/* ── Exit-intent popup ──────────────────────────────────────────────── */}
+      {showExitPopup && !useCasesUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="relative mx-4 w-full max-w-md rounded-xl border border-border bg-card p-8">
+            <button
+              onClick={() => setShowExitPopup(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-white transition-colors"
+              aria-label="Close"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M5 5l10 10M15 5L5 15" />
+              </svg>
+            </button>
+
+            <div className="flex flex-col items-center text-center gap-4">
+              <p className="font-display font-semibold text-white text-xl">Personalized AI Use Cases</p>
+              <p className="text-sm text-secondary-foreground max-w-md">
+                Receive the top 3 AI Use Cases personalized for your current situation
+              </p>
+
+              <form onSubmit={handleUseCasesSubmit} className="mt-2 flex flex-col items-center gap-3 w-full max-w-sm">
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  placeholder="you@company.com"
+                  value={useCasesEmail}
+                  onChange={e => { setUseCasesEmail(e.target.value); setEmailError('') }}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-white placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                {emailError && <p className="text-sm text-red-400">{emailError}</p>}
+                <button
+                  type="submit"
+                  disabled={isSubmittingEmail}
+                  className="rounded-full text-sm font-medium px-7 py-3.5 bg-primary text-white border border-primary/60 hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {isSubmittingEmail ? 'Generating...' : 'Get AI Prompts'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
     </main>
   )
