@@ -725,7 +725,7 @@ function HomeContent() {
               className="mt-6 text-[0.81rem] md:text-[1.015rem] leading-relaxed text-secondary-foreground fade-up"
               style={{ animationDelay: '460ms' }}
             >
-              Complete the benchmark and get a personalized AI Sales System roadmap
+              Complete the benchmark and get a personalized AI Prompts
             </p>
 
             {/* Scroll hint */}
